@@ -1,6 +1,9 @@
 {
   "name": "purescript-kefir",
   "version": "0.1.0",
+  "scripts": {
+    "test": "gulp test"
+  },
   "description": "",
   "author": "HirotomoMoriwaki",
   "license": "MIT",
