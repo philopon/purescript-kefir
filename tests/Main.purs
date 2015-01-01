@@ -8,6 +8,8 @@ import Test.Assert.Simple
 import Test.PSpec
 import Test.PSpec.Mocha
 
+import Debug.Trace
+
 import FRP.Kefir
 
 assertAbout e a = if e * 0.9 < a && a < e * 1.1 then return unit else assertFailure msg
@@ -110,4 +112,20 @@ main = runMocha $ do
         onEnd f $ do
           v <- readRef r
           v @?= "bar"
+          itIs done
+
+    describe "fromBinder" $
+      itAsync "" $ \done -> do
+        r <- newRef ""
+
+        b <- fromBinder $ \e -> do
+          emit e "emit"
+          T.timeout 50 $ end e
+          return $ do
+            modifyRef r (\a -> a ++ "end")
+
+        onValue b $ \v -> modifyRef r (\a -> a ++ v)
+        onEnd b $ T.timeout 50 $ do
+          v <- readRef r
+          v @?= "emitend"
           itIs done

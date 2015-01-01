@@ -36,13 +36,21 @@ foreign import execute """
     return m();
   }""" :: forall a. a -> a
 
+-- Stream
+
 newtype Emitter a = Emitter (Stream a)
 newtype Endless a = Endless (Stream a)
 
 emitter :: forall e a. EffKefir e (Emitter a)
 emitter = runFn2 call0Eff "emitter" kefir
 
-never :: forall e a. EffKefir e (Stream a)
+emit :: forall e a. Emitter a -> a -> EffKefir e Unit
+emit = runFn3 call1Eff "emit"
+
+end :: forall e a. Emitter a -> EffKefir e Unit
+end = runFn2 call0Eff "end"
+
+never :: forall e a. EffKefir e (Endless a)
 never = runFn2 call0Eff "never" kefir
 
 later :: forall e a. Number -> a -> EffKefir e (Stream a)
@@ -68,17 +76,14 @@ withInterval i f = runFn4 call2Eff "withInterval" kefir i (\e -> execute $ f e)
 fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream a)
 fromCallback m = runFn3 call1Eff "fromCallback" kefir (\e -> execute $ m (\a -> return $ e a))
 
-class Emittable stream where
-  emit :: forall e a. stream a -> a -> EffKefir e Unit
+fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit))
+           -> EffKefir e (Stream a)
+fromBinder f = runFn3 call1Eff "fromBinder" kefir (\e -> execute $ f e)
 
-instance emittableStream :: Emittable Emitter where
-  emit = runFn3 call1Eff "emit"
+-- Property
 
-class Endable stream where
-  end :: forall e a. stream a -> EffKefir e Unit
 
-instance endableStream :: Endable Emitter where
-  end = runFn2 call0Eff "end"
+-- Observable
 
 newtype Target = Target Number
 
