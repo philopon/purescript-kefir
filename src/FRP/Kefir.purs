@@ -1,9 +1,12 @@
 module FRP.Kefir
-  ( Kefir(), Stream(), EffKefir()
+  ( Kefir(), Stream(), Property(), EffKefir()
 
   , StreamLike
   , Terminable, onEnd
   , Observable, onValue
+  , IsStream
+  , IsProperty
+
   , FunKey(), off
   , onLog, offLog
 
@@ -17,6 +20,16 @@ module FRP.Kefir
   , WithInterval(), withInterval
   , FromCallback(), fromCallback
   , FromBinder(), fromBinder
+
+  , Constant(), constant
+
+  , toProperty, toPropertyWith
+  , changes
+  , withDefault
+
+  , map, mapEff
+  , filter, filterEff
+  , take, takeWhile, takeWhileEff
   ) where
 
 import Control.Monad.Eff
@@ -24,7 +37,8 @@ import FRP.Kefir.Foreign
 import Data.Function
 
 foreign import data Kefir   :: !
-foreign import data Stream  :: * -> *
+foreign import data Stream   :: * -> *
+foreign import data Property :: * -> *
 foreign import data RegisteredFunction :: *
 
 type EffKefir e = Eff (kefir :: Kefir | e)
@@ -60,9 +74,18 @@ class  StreamLike (stream :: * -> *)
 class (StreamLike stream) <= Terminable stream
 class (StreamLike stream) <= Observable stream
 
+class (StreamLike stream) <= IsStream   stream
+class (StreamLike stream) <= IsProperty stream
+
 instance streamLikeStream :: StreamLike Stream
 instance terminableStream :: Terminable Stream
 instance observableStream :: Observable Stream
+instance isStreamStream   :: IsStream   Stream
+
+instance streamLikeProperty :: StreamLike Property
+instance terminableProperty :: Terminable Property
+instance observableProperty :: Observable Property
+instance isPropertyProperty :: IsProperty Property
 
 -- Emitter
 newtype Emitter a = Emitter (Stream a)
@@ -78,6 +101,7 @@ end = runFn2 call0Eff "end"
 instance streamLikeEmitter :: StreamLike Emitter
 instance terminableEmitter :: Terminable Emitter
 instance observableEmitter :: Observable Emitter
+instance isStreamEmitter   :: IsStream   Emitter
 
 -- never
 newtype Never a = Never (Stream a)
@@ -86,6 +110,7 @@ never = runFn2 call0Eff "never" kefir
 
 instance streamLikeNever :: StreamLike Never
 instance terminableNever :: Terminable Never
+instance isStreamNever   :: IsStream   Never
 
 -- later
 newtype Later a = Later (Stream a)
@@ -95,6 +120,7 @@ later = runFn4 call2Eff "later" kefir
 instance streamLikeLater :: StreamLike Later
 instance terminableLater :: Terminable Later
 instance observableLater :: Observable Later
+instance isStreamLater   :: IsStream   Later
 
 -- Interval
 newtype Interval a = Interval (Stream a)
@@ -103,6 +129,7 @@ interval = runFn4 call2Eff "interval" kefir
 
 instance streamLikeInterval :: StreamLike Interval
 instance observableInterval :: Observable Interval
+instance isStreamInterval   :: IsStream   Interval
 
 -- sequentially
 newtype Sequentially a = Sequentially (Stream a)
@@ -112,6 +139,7 @@ sequentially = runFn4 call2Eff "sequentially" kefir
 instance streamLikeSequentially :: StreamLike Sequentially
 instance terminableSequentially :: Terminable Sequentially
 instance observableSequentially :: Observable Sequentially
+instance isStreamSequentially   :: IsStream   Sequentially
 
 -- repeatedly
 newtype Repeatedly a = Repeatedly (Stream a)
@@ -120,6 +148,7 @@ repeatedly = runFn4 call2Eff "repeatedly" kefir
 
 instance streamLikeRepeatedly :: StreamLike Repeatedly
 instance observableRepeatedly :: Observable Repeatedly
+instance isStreamRepeatedly   :: IsStream   Repeatedly
 
 -- fromPoll
 newtype FromPoll a = FromPoll (Stream a)
@@ -128,6 +157,7 @@ fromPoll = runFn4 call2Eff "fromPoll" kefir
 
 instance streamLikeFromPoll :: StreamLike FromPoll
 instance observableFromPoll :: Observable FromPoll
+instance isStreamFromPoll   :: IsStream   FromPoll
 
 -- withinterval
 newtype WithInterval a = WithInterval (Stream a)
@@ -139,6 +169,7 @@ withInterval i f = runFn4 call2Eff "withInterval" kefir i (\e -> execute $ f e)
 instance streamLikeWithInterval :: StreamLike WithInterval
 instance observableWithInterval :: Observable WithInterval
 instance terminableWithInterval :: Terminable WithInterval
+instance isStreamWithInterval   :: IsStream   WithInterval
 
 -- fromCallback
 newtype FromCallback a = FromCallback (Stream a)
@@ -148,6 +179,7 @@ fromCallback m = runFn3 call1Eff "fromCallback" kefir (\e -> execute $ m (\a -> 
 instance streamLikeFromCallback :: StreamLike FromCallback
 instance observableFromCallback :: Observable FromCallback
 instance terminableFromCallback :: Terminable FromCallback
+instance isStreamFromCallback   :: IsStream   FromCallback
 
 -- fromBinder
 newtype FromBinder a = FromBinder (Stream a)
@@ -158,6 +190,17 @@ fromBinder f = runFn3 call1Eff "fromBinder" kefir (\e -> execute $ f e)
 instance streamLikeFromBinder :: StreamLike FromBinder
 instance observableFromBinder :: Observable FromBinder
 instance terminableFromBinder :: Terminable FromBinder
+instance isStreamFromBinder   :: IsStream   FromBinder
+
+-- Property
+newtype Constant a = Constant (Property a)
+constant :: forall e a. a -> EffKefir e (Constant a)
+constant = runFn3 call1Eff "constant" kefir
+
+instance streamLikeConstant :: StreamLike Constant
+instance observableConstant :: Observable Constant
+instance terminableConstant :: Terminable Constant
+instance isPropertyConstant :: IsProperty Constant
 
 -- Observable Impl
 
@@ -224,3 +267,38 @@ onLog = runFn3 call1Eff "log"
 
 offLog :: forall e stream. (StreamLike stream) => stream _ -> EffKefir e Unit
 offLog = runFn2 call0Eff "offLog"
+
+toProperty :: forall e stream a. (IsStream stream) => stream a -> EffKefir e (Property a)
+toProperty = runFn2 call0Eff "toProperty"
+
+toPropertyWith :: forall e stream a. (IsStream stream) => stream a -> a -> EffKefir e (Property a)
+toPropertyWith = runFn3 call1Eff "toProperty"
+
+changes :: forall e stream a. (IsProperty stream) => stream a -> EffKefir e (Stream a)
+changes = runFn2 call0Eff "changes"
+
+withDefault :: forall e stream a. (StreamLike stream) => stream a -> a -> EffKefir e (Property a)
+withDefault = runFn3 call1Eff "withDefault"
+
+-- modify an observable
+
+map :: forall e stream a b. (StreamLike stream) => (a -> b) -> stream a -> EffKefir e (Stream b)
+map f s = runFn3 call1Eff "map" s f
+
+mapEff :: forall e stream a b. (StreamLike stream) => (a -> EffKefir e b) -> stream a -> EffKefir e (Stream b)
+mapEff f s = runFn3 call1Eff "map" s (\v -> execute (f v))
+
+filter :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+filter f s = runFn3 call1Eff "filter" s f
+
+filterEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+filterEff f s = runFn3 call1Eff "filter" s (\v -> execute (f v))
+
+take :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
+take n s = runFn3 call1Eff "take" s n
+
+takeWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+takeWhile f s = runFn3 call1Eff "takeWhile" s f
+
+takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+takeWhileEff f s = runFn3 call1Eff "takeWhile" s (\v -> execute (f v))

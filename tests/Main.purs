@@ -1,14 +1,15 @@
 module Test.Main where
 
 import Control.Monad.Eff.Ref
+import Data.Traversable
+import Data.Foldable
 import qualified Control.Timer as T
 import Data.Date
+import Data.Array(range)
 
 import Test.Assert.Simple
 import Test.PSpec
 import Test.PSpec.Mocha
-
-import Debug.Trace
 
 import FRP.Kefir
 
@@ -128,4 +129,203 @@ main = runMocha $ do
         onEnd b $ T.timeout 50 $ do
           v <- readRef r
           v @?= "emitend"
+          itIs done
+
+  describe "property" $
+    describe "constant" $
+      itAsync "must send constant and end" $ \done -> do
+        c <- constant "foo"
+
+        r <- newRef ""
+        onValue c $ \v -> modifyRef r ((++) v)
+        onEnd c $ do
+          v <- readRef r
+          v @?= "foo"
+          itIs done
+
+  describe "convert" $ do
+    describe "toProperty" $
+      itAsync "should be same to original." $ \done -> do
+        e <- emitter
+        p <- toProperty e
+
+        onValue p $ \v -> v @?= "emit"
+        onEnd p $ itIs done
+
+        emit e "emit"
+        end e
+
+    describe "toPropertyWith" $
+      itAsync "should send current and original." $ \done -> do
+        e <- emitter
+        p <- toPropertyWith e "foo"
+
+        r <- newRef ""
+        onValue p $ \v -> modifyRef r (\a -> a ++ v)
+        onEnd p $ do
+          v <- readRef r
+          v @?= "foobar"
+          itIs done
+
+        emit e "bar"
+        end e
+
+    describe "changes" $
+      itAsync "should be same to original." $ \done -> do
+        c <- constant "foo"
+        s <- changes c
+
+        onValue s $ \v -> v @?= "foo"
+        onEnd s $ itIs done
+
+    describe "withDefault" $ do
+      itAsync "should add default to stream" $ \done -> do
+        e <- emitter
+        w <- withDefault e "foo"
+
+        r <- newRef ""
+        onValue w $ \v -> modifyRef r (\a -> a ++ v)
+        onEnd w $ do
+          v <- readRef r
+          v @?= "foobar"
+          itIs done
+
+        emit e "bar"
+        end e
+
+      itAsync "should add default to property missing current value" $ \done -> do
+        e <- emitter
+        p <- toProperty e
+        w <- withDefault p "foo"
+
+        r <- newRef ""
+        onValue w $ \v -> modifyRef r (\a -> a ++ v)
+        onEnd w $ do
+          v <- readRef r
+          v @?= "foobar"
+          itIs done
+
+        emit e "bar"
+        end e
+
+      itAsync "should be id when property has current value" $ \done -> do
+        e <- emitter
+        p <- toPropertyWith e "foo"
+        w <- withDefault p "xxx"
+
+        r <- newRef ""
+        onValue w $ \v -> modifyRef r (\a -> a ++ v)
+        onEnd w $ do
+          v <- readRef r
+          v @?= "foobar"
+          itIs done
+
+        emit e "bar"
+        end e
+
+  describe "modify an observable" $ do
+    describe "map" $
+      itAsync "should mapping value" $ \done -> do
+        e <- emitter
+        f <- map show e
+
+        r <- newRef ""
+
+        onValue f $ modifyRef r <<< flip (++)
+
+        onEnd f $ do
+          v <- readRef r
+          v @?= "1234567890"
+          itIs done
+
+        emit e 123
+        emit e 456
+        emit e 789
+        emit e 0
+        end e
+
+    describe "mapEff" $
+      itAsync "should mapping value with side effect" $ \done -> do
+        e <- emitter
+
+        re <- newRef 0
+        f  <- mapEff (\v -> modifyRef re ((+) v) >>= \_ -> return v) e
+
+        rf <- newRef 0
+        onValue e $ modifyRef rf <<< (+)
+
+        onEnd f $ do
+          ve <- readRef re
+          vf <- readRef rf
+
+          ve @?= vf
+          itIs done
+        
+        emit e 35
+        emit e (-1)
+        end e
+        emit e 65
+
+    describe "filter" $
+      itAsync "should take even only" $ \done -> do
+        e <- emitter
+        f <- filter (\v -> v % 2 == 0) e
+
+        onValue f $ \v -> v % 2 @?= 0
+        onEnd   f $ itIs done
+
+        for (range 0 100) (emit e)
+        end e
+
+    describe "filterEff" $
+      itAsync "should take even only with side effect" $ \done -> do
+        e <- emitter
+        r <- newRef 0
+        f <- filterEff (\v -> modifyRef r ((+) v) >>= \_ -> return (v % 2 == 0)) e
+
+        let ary = range 0 100
+
+        onValue f $ \v -> v % 2 @?= 0
+        onEnd   f $ do
+          v <- readRef r
+          v @?= sum ary
+          itIs done
+
+        for ary (emit e)
+        end e
+
+    describe "take" $
+      itAsync "should take 10 values and end" $ \done -> do
+        p <- repeatedly 1 (range 0 100)
+        f <- take 10 p
+
+        r <- newRef 0
+        onValue f $ modifyRef r <<< (+)
+        onEnd f $ do
+          v <- readRef r
+          v @?= sum (range 0 9)
+          itIs done
+
+    describe "takeWhile" $
+      itAsync "should take while <10 and end" $ \done -> do
+        p <- repeatedly 1 (range 0 100)
+        f <- takeWhile ((>) 10) p
+
+        r <- newRef 0
+        onValue f $ modifyRef r <<< (+)
+        onEnd f $ do
+          v <- readRef r
+          v @?= sum (range 0 9)
+          itIs done
+
+    describe "takeWhileEff" $
+      itAsync "should take while <10 and end with side effect" $ \done -> do
+        p <- repeatedly 1 (range 0 100)
+        f <- takeWhileEff (\v -> return $ 10 > v) p
+
+        r <- newRef 0
+        onValue f $ modifyRef r <<< (+)
+        onEnd f $ do
+          v <- readRef r
+          v @?= sum (range 0 9)
           itIs done

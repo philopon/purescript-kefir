@@ -4,6 +4,8 @@
 
 ### Types
 
+    newtype Constant a
+
     type EffKefir e = Eff (kefir :: Kefir | e)
 
     newtype Emitter a
@@ -24,6 +26,8 @@
 
     newtype Never a
 
+    data Property :: * -> *
+
     newtype Repeatedly a
 
     newtype Sequentially a
@@ -35,6 +39,10 @@
 
 ### Type Classes
 
+    class (StreamLike stream) <= IsProperty stream where
+
+    class (StreamLike stream) <= IsStream stream where
+
     class (StreamLike stream) <= Observable stream where
 
     class StreamLike (stream :: * -> *) where
@@ -43,6 +51,34 @@
 
 
 ### Type Class Instances
+
+    instance isPropertyConstant :: IsProperty Constant
+
+    instance isPropertyProperty :: IsProperty Property
+
+    instance isStreamEmitter :: IsStream Emitter
+
+    instance isStreamFromBinder :: IsStream FromBinder
+
+    instance isStreamFromCallback :: IsStream FromCallback
+
+    instance isStreamFromPoll :: IsStream FromPoll
+
+    instance isStreamInterval :: IsStream Interval
+
+    instance isStreamLater :: IsStream Later
+
+    instance isStreamNever :: IsStream Never
+
+    instance isStreamRepeatedly :: IsStream Repeatedly
+
+    instance isStreamSequentially :: IsStream Sequentially
+
+    instance isStreamStream :: IsStream Stream
+
+    instance isStreamWithInterval :: IsStream WithInterval
+
+    instance observableConstant :: Observable Constant
 
     instance observableEmitter :: Observable Emitter
 
@@ -56,6 +92,8 @@
 
     instance observableLater :: Observable Later
 
+    instance observableProperty :: Observable Property
+
     instance observableRepeatedly :: Observable Repeatedly
 
     instance observableSequentially :: Observable Sequentially
@@ -63,6 +101,8 @@
     instance observableStream :: Observable Stream
 
     instance observableWithInterval :: Observable WithInterval
+
+    instance streamLikeConstant :: StreamLike Constant
 
     instance streamLikeEmitter :: StreamLike Emitter
 
@@ -78,6 +118,8 @@
 
     instance streamLikeNever :: StreamLike Never
 
+    instance streamLikeProperty :: StreamLike Property
+
     instance streamLikeRepeatedly :: StreamLike Repeatedly
 
     instance streamLikeSequentially :: StreamLike Sequentially
@@ -85,6 +127,8 @@
     instance streamLikeStream :: StreamLike Stream
 
     instance streamLikeWithInterval :: StreamLike WithInterval
+
+    instance terminableConstant :: Terminable Constant
 
     instance terminableEmitter :: Terminable Emitter
 
@@ -96,6 +140,8 @@
 
     instance terminableNever :: Terminable Never
 
+    instance terminableProperty :: Terminable Property
+
     instance terminableSequentially :: Terminable Sequentially
 
     instance terminableStream :: Terminable Stream
@@ -105,11 +151,19 @@
 
 ### Values
 
+    changes :: forall e stream a. (IsProperty stream) => stream a -> EffKefir e (Stream a)
+
+    constant :: forall e a. a -> EffKefir e (Constant a)
+
     emit :: forall e a. Emitter a -> a -> EffKefir e Unit
 
     emitter :: forall e a. EffKefir e (Emitter a)
 
     end :: forall e a. Emitter a -> EffKefir e Unit
+
+    filter :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    filterEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 
     fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (FromBinder a)
 
@@ -120,6 +174,10 @@
     interval :: forall e a. Number -> a -> EffKefir e (Interval a)
 
     later :: forall e a. Number -> a -> EffKefir e (Later a)
+
+    map :: forall e stream a b. (StreamLike stream) => (a -> b) -> stream a -> EffKefir e (Stream b)
+
+    mapEff :: forall e stream a b. (StreamLike stream) => (a -> EffKefir e b) -> stream a -> EffKefir e (Stream b)
 
     never :: forall e. EffKefir e (Never Unit)
 
@@ -136,6 +194,18 @@
     repeatedly :: forall e a. Number -> [a] -> EffKefir e (Repeatedly a)
 
     sequentially :: forall e a. Number -> [a] -> EffKefir e (Sequentially a)
+
+    take :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
+
+    takeWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+
+    toProperty :: forall e stream a. (IsStream stream) => stream a -> EffKefir e (Property a)
+
+    toPropertyWith :: forall e stream a. (IsStream stream) => stream a -> a -> EffKefir e (Property a)
+
+    withDefault :: forall e stream a. (StreamLike stream) => stream a -> a -> EffKefir e (Property a)
 
     withInterval :: forall e a. Number -> (Emitter a -> EffKefir e Unit) -> EffKefir e (WithInterval a)
 
