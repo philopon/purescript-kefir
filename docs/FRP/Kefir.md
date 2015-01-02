@@ -31,12 +31,6 @@
 
 ### Type Classes
 
-    class Emittable stream where
-      emit :: forall e a. stream a -> a -> EffKefir e Unit
-
-    class Endable stream where
-      end :: forall e a. stream a -> EffKefir e Unit
-
     class Limitted stream where
       onEnd :: forall e a b. stream a -> EffKefir e b -> EffKefir e FunKey
 
@@ -47,10 +41,6 @@
 
 
 ### Type Class Instances
-
-    instance emittableStream :: Emittable Emitter
-
-    instance endableStream :: Endable Emitter
 
     instance limittedEmitter :: Limitted Emitter
 
@@ -71,9 +61,15 @@
 
     call2Eff :: forall e o a b r. Fn4 String o a b (Eff e r)
 
+    emit :: forall e a. Emitter a -> a -> EffKefir e Unit
+
     emitter :: forall e a. EffKefir e (Emitter a)
 
+    end :: forall e a. Emitter a -> EffKefir e Unit
+
     execute :: forall a. a -> a
+
+    fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream a)
 
     fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream a)
 
@@ -83,7 +79,7 @@
 
     later :: forall e a. Number -> a -> EffKefir e (Stream a)
 
-    never :: forall e a. EffKefir e (Stream a)
+    never :: forall e a. EffKefir e (Endless a)
 
     off :: forall e. FunKey -> EffKefir e Unit
 
