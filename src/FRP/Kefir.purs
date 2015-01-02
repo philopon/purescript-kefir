@@ -32,6 +32,7 @@ module FRP.Kefir
   , take, takeWhile, takeWhileEff
   , skip, skipWhile, skipWhileEff
   , skipDuplicates, skipDuplicatesWith
+  , diff, diffWith
   ) where
 
 import Control.Monad.Eff
@@ -319,3 +320,9 @@ skipDuplicatesWith f s = runFn3 call1Eff "skipDuplicates" s (mkFn2 f)
 
 skipDuplicates :: forall e stream a. (StreamLike stream, Eq a) => stream a -> EffKefir e (Stream a)
 skipDuplicates = skipDuplicatesWith (==)
+
+diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
+diff f s = runFn3 call1Eff "diff" s (mkFn2 f)
+
+diffWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
+diffWith f a s = runFn4 call2Eff "diff" s (mkFn2 f) a

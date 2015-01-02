@@ -155,6 +155,10 @@
 
     constant :: forall e a. a -> EffKefir e (Constant a)
 
+    diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
+
+    diffWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
+
     emit :: forall e a. Emitter a -> a -> EffKefir e Unit
 
     emitter :: forall e a. EffKefir e (Emitter a)

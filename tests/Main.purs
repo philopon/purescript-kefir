@@ -378,3 +378,19 @@ main = runMocha $ do
           v <- readRef r
           v @?= [5,4,3,2,1]
           itIs done
+    
+    describe "diff" $
+      itAsync "should calc diffs" $ \done -> do
+        p <- sequentially 1 (range 0 10)
+        d <- diff (\p n -> n - p) p
+
+        onValue d $ \v -> v @?= 1
+        onEnd d $ itIs done
+
+    describe "diffWith" $
+      itAsync "should calc diffs" $ \done -> do
+        p <- sequentially 1 (range 0 10)
+        d <- diffWith (\p n -> n - p) (-1) p
+
+        onValue d $ \v -> v @?= 1
+        onEnd d $ itIs done
