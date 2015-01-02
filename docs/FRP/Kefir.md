@@ -195,6 +195,16 @@
 
     sequentially :: forall e a. Number -> [a] -> EffKefir e (Sequentially a)
 
+    skip :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
+
+    skipDuplicates :: forall e stream a. (StreamLike stream, Eq a) => stream a -> EffKefir e (Stream a)
+
+    skipDuplicatesWith :: forall e stream a. (StreamLike stream) => (a -> a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    skipWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    skipWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+
     take :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
 
     takeWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)

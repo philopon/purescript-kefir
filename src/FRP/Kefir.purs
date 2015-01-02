@@ -30,6 +30,8 @@ module FRP.Kefir
   , map, mapEff
   , filter, filterEff
   , take, takeWhile, takeWhileEff
+  , skip, skipWhile, skipWhileEff
+  , skipDuplicates, skipDuplicatesWith
   ) where
 
 import Control.Monad.Eff
@@ -302,3 +304,18 @@ takeWhile f s = runFn3 call1Eff "takeWhile" s f
 
 takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 takeWhileEff f s = runFn3 call1Eff "takeWhile" s (\v -> execute (f v))
+
+skip :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
+skip n s = runFn3 call1Eff "skip" s n
+
+skipWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+skipWhile f s = runFn3 call1Eff "skipWhile" s f
+
+skipWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+skipWhileEff f s = runFn3 call1Eff "skipWhile" s (\v -> execute (f v))
+
+skipDuplicatesWith :: forall e stream a. (StreamLike stream) => (a -> a -> Boolean) -> stream a -> EffKefir e (Stream a)
+skipDuplicatesWith f s = runFn3 call1Eff "skipDuplicates" s (mkFn2 f)
+
+skipDuplicates :: forall e stream a. (StreamLike stream, Eq a) => stream a -> EffKefir e (Stream a)
+skipDuplicates = skipDuplicatesWith (==)

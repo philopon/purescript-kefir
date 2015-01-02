@@ -8,7 +8,7 @@ import Data.Date
 import Data.Array(range)
 
 import Test.Assert.Simple
-import Test.PSpec
+import Test.PSpec hiding (skip)
 import Test.PSpec.Mocha
 
 import FRP.Kefir
@@ -328,4 +328,53 @@ main = runMocha $ do
         onEnd f $ do
           v <- readRef r
           v @?= sum (range 0 9)
+          itIs done
+
+    describe "skip" $
+      itAsync "should skip 10 values" $ \done -> do
+        p <- sequentially 1 (range 0 30)
+        f <- skip 10 p
+
+        r <- newRef 0
+        onValue f $ modifyRef r <<< (+)
+        onEnd f $ do
+          v <- readRef r
+          v @?= sum (range 10 30)
+          itIs done
+
+    describe "skipWhile" $
+      itAsync "should skip while <10" $ \done -> do
+        p <- sequentially 1 (range 0 30)
+        f <- skipWhile ((>) 10) p
+
+        r <- newRef 0
+        onValue f $ modifyRef r <<< (+)
+        onEnd f $ do
+          v <- readRef r
+          v @?= sum (range 10 30)
+          itIs done
+
+    describe "skipWhileEff" $
+      itAsync "should skip while <10 with side effect" $ \done -> do
+        p <- sequentially 1 (range 0 30)
+        f <- skipWhileEff (\v -> return $ 10 > v) p
+
+        r <- newRef 0
+        onValue f $ modifyRef r <<< (+)
+        onEnd f $ do
+          v <- readRef r
+          v @?= sum (range 10 30)
+          itIs done
+
+    describe "skipDuplicates" $
+      itAsync "should skip duplicates" $ \done -> do
+        p <- sequentially 1 [1,2,2,3,3,3,4,4,4,4,5,5,5,5,5]
+        s <- skipDuplicates p
+
+        r <- newRef []
+        onValue s $ \v -> modifyRef r (\l -> v:l)
+
+        onEnd s $ do
+          v <- readRef r
+          v @?= [5,4,3,2,1]
           itIs done
