@@ -1,4 +1,23 @@
-module FRP.Kefir where
+module FRP.Kefir
+  ( Kefir(), Stream(), EffKefir()
+
+  , StreamLike
+  , Terminable, onEnd
+  , Observable, onValue
+  , FunKey(), off
+  , onLog, offLog
+
+  , Emitter(), emitter, emit, end
+  , Never(), never
+  , Later(), later
+  , Interval(), interval
+  , Sequentially(), sequentially
+  , Repeatedly(), repeatedly
+  , FromPoll(), fromPoll
+  , WithInterval(), withInterval
+  , FromCallback(), fromCallback
+  , FromBinder(), fromBinder
+  ) where
 
 import Control.Monad.Eff
 import FRP.Kefir.Foreign
@@ -37,10 +56,16 @@ foreign import execute """
   }""" :: forall a. a -> a
 
 -- Stream
+class  StreamLike (stream :: * -> *)
+class (StreamLike stream) <= Terminable stream
+class (StreamLike stream) <= Observable stream
 
+instance streamLikeStream :: StreamLike Stream
+instance terminableStream :: Terminable Stream
+instance observableStream :: Observable Stream
+
+-- Emitter
 newtype Emitter a = Emitter (Stream a)
-newtype Endless a = Endless (Stream a)
-
 emitter :: forall e a. EffKefir e (Emitter a)
 emitter = runFn2 call0Eff "emitter" kefir
 
@@ -50,40 +75,91 @@ emit = runFn3 call1Eff "emit"
 end :: forall e a. Emitter a -> EffKefir e Unit
 end = runFn2 call0Eff "end"
 
-never :: forall e a. EffKefir e (Endless a)
+instance streamLikeEmitter :: StreamLike Emitter
+instance terminableEmitter :: Terminable Emitter
+instance observableEmitter :: Observable Emitter
+
+-- never
+newtype Never a = Never (Stream a)
+never :: forall e. EffKefir e (Never Unit)
 never = runFn2 call0Eff "never" kefir
 
-later :: forall e a. Number -> a -> EffKefir e (Stream a)
+instance streamLikeNever :: StreamLike Never
+instance terminableNever :: Terminable Never
+
+-- later
+newtype Later a = Later (Stream a)
+later :: forall e a. Number -> a -> EffKefir e (Later a)
 later = runFn4 call2Eff "later" kefir
 
-interval :: forall e a. Number -> a -> EffKefir e (Endless a)
+instance streamLikeLater :: StreamLike Later
+instance terminableLater :: Terminable Later
+instance observableLater :: Observable Later
+
+-- Interval
+newtype Interval a = Interval (Stream a)
+interval :: forall e a. Number -> a -> EffKefir e (Interval a)
 interval = runFn4 call2Eff "interval" kefir
 
-sequentially :: forall e a. Number -> [a] -> EffKefir e (Stream a)
+instance streamLikeInterval :: StreamLike Interval
+instance observableInterval :: Observable Interval
+
+-- sequentially
+newtype Sequentially a = Sequentially (Stream a)
+sequentially :: forall e a. Number -> [a] -> EffKefir e (Sequentially a)
 sequentially = runFn4 call2Eff "sequentially" kefir
 
-repeatedly :: forall e a. Number -> [a] -> EffKefir e (Endless a)
+instance streamLikeSequentially :: StreamLike Sequentially
+instance terminableSequentially :: Terminable Sequentially
+instance observableSequentially :: Observable Sequentially
+
+-- repeatedly
+newtype Repeatedly a = Repeatedly (Stream a)
+repeatedly :: forall e a. Number -> [a] -> EffKefir e (Repeatedly a)
 repeatedly = runFn4 call2Eff "repeatedly" kefir
 
-fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Endless a)
+instance streamLikeRepeatedly :: StreamLike Repeatedly
+instance observableRepeatedly :: Observable Repeatedly
+
+-- fromPoll
+newtype FromPoll a = FromPoll (Stream a)
+fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (FromPoll a)
 fromPoll = runFn4 call2Eff "fromPoll" kefir
 
+instance streamLikeFromPoll :: StreamLike FromPoll
+instance observableFromPoll :: Observable FromPoll
+
+-- withinterval
+newtype WithInterval a = WithInterval (Stream a)
 withInterval :: forall e a. Number
              -> (Emitter a -> EffKefir e Unit)
-             -> EffKefir e (Stream a)
+             -> EffKefir e (WithInterval a)
 withInterval i f = runFn4 call2Eff "withInterval" kefir i (\e -> execute $ f e)
 
-fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream a)
+instance streamLikeWithInterval :: StreamLike WithInterval
+instance observableWithInterval :: Observable WithInterval
+instance terminableWithInterval :: Terminable WithInterval
+
+-- fromCallback
+newtype FromCallback a = FromCallback (Stream a)
+fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (FromCallback a)
 fromCallback m = runFn3 call1Eff "fromCallback" kefir (\e -> execute $ m (\a -> return $ e a))
 
+instance streamLikeFromCallback :: StreamLike FromCallback
+instance observableFromCallback :: Observable FromCallback
+instance terminableFromCallback :: Terminable FromCallback
+
+-- fromBinder
+newtype FromBinder a = FromBinder (Stream a)
 fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit))
-           -> EffKefir e (Stream a)
+           -> EffKefir e (FromBinder a)
 fromBinder f = runFn3 call1Eff "fromBinder" kefir (\e -> execute $ f e)
 
--- Property
+instance streamLikeFromBinder :: StreamLike FromBinder
+instance observableFromBinder :: Observable FromBinder
+instance terminableFromBinder :: Terminable FromBinder
 
-
--- Observable
+-- Observable Impl
 
 newtype Target = Target Number
 
@@ -137,31 +213,14 @@ function offImpl(targets, key){
 off :: forall e. FunKey -> EffKefir e Unit
 off = runFn2 offImpl targets
 
-class Limitted stream where
-  onEnd   :: forall e a b. stream a -> (EffKefir e b) -> EffKefir e FunKey
+onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e FunKey
+onValue = runFn3 onValueImpl targetValue
 
-instance limittedEmitter :: Limitted Emitter where
-  onEnd = runFn3 onEndImpl targetEnd
+onEnd :: forall e stream a. (Terminable stream) => stream a -> (EffKefir e _) -> EffKefir e FunKey
+onEnd = runFn3 onEndImpl targetEnd
 
-instance limittedStream :: Limitted Stream where
-  onEnd = runFn3 onEndImpl targetEnd
+onLog :: forall e stream. (StreamLike stream) => stream _ -> String -> EffKefir e Unit
+onLog = runFn3 call1Eff "log"
 
-class Observable stream where
-  onValue :: forall e a b. stream a -> (a -> EffKefir e b) -> EffKefir e FunKey
-  onLog   :: forall e a. stream a -> String -> EffKefir e Unit
-  offLog  :: forall e a. stream a -> EffKefir e Unit
-
-instance observableEmitter :: Observable Emitter where
-  onValue = runFn3 onValueImpl targetValue
-  onLog   = runFn3 call1Eff "log"
-  offLog  = runFn2 call0Eff "offLog"
-
-instance observableEndless :: Observable Endless where
-  onValue = runFn3 onValueImpl targetValue
-  onLog   = runFn3 call1Eff "log"
-  offLog  = runFn2 call0Eff "offLog"
-
-instance observableStream :: Observable Stream where
-  onValue = runFn3 onValueImpl targetValue
-  onLog   = runFn3 call1Eff "log"
-  offLog  = runFn2 call0Eff "offLog"
+offLog :: forall e stream. (StreamLike stream) => stream _ -> EffKefir e Unit
+offLog = runFn2 call0Eff "offLog"

@@ -4,62 +4,106 @@
 
 ### Types
 
-    data DummyStream :: *
-
     type EffKefir e = Eff (kefir :: Kefir | e)
 
-    newtype Emitter a where
-      Emitter :: Stream a -> Emitter a
+    newtype Emitter a
 
-    newtype Endless a where
-      Endless :: Stream a -> Endless a
+    newtype FromBinder a
 
-    newtype FunKey where
-      FunKey :: { function :: RegisteredFunction, target :: Target, stream :: DummyStream } -> FunKey
+    newtype FromCallback a
+
+    newtype FromPoll a
+
+    newtype FunKey
+
+    newtype Interval a
 
     data Kefir :: !
 
-    data RegisteredFunction :: *
+    newtype Later a
+
+    newtype Never a
+
+    newtype Repeatedly a
+
+    newtype Sequentially a
 
     data Stream :: * -> *
 
-    newtype Target where
-      Target :: Number -> Target
-
-    type Targets = { end :: Target, value :: Target }
+    newtype WithInterval a
 
 
 ### Type Classes
 
-    class Limitted stream where
-      onEnd :: forall e a b. stream a -> EffKefir e b -> EffKefir e FunKey
+    class (StreamLike stream) <= Observable stream where
 
-    class Observable stream where
-      onValue :: forall e a b. stream a -> (a -> EffKefir e b) -> EffKefir e FunKey
-      onLog :: forall e a. stream a -> String -> EffKefir e Unit
-      offLog :: forall e a. stream a -> EffKefir e Unit
+    class StreamLike (stream :: * -> *) where
+
+    class (StreamLike stream) <= Terminable stream where
 
 
 ### Type Class Instances
 
-    instance limittedEmitter :: Limitted Emitter
-
-    instance limittedStream :: Limitted Stream
-
     instance observableEmitter :: Observable Emitter
 
-    instance observableEndless :: Observable Endless
+    instance observableFromBinder :: Observable FromBinder
+
+    instance observableFromCallback :: Observable FromCallback
+
+    instance observableFromPoll :: Observable FromPoll
+
+    instance observableInterval :: Observable Interval
+
+    instance observableLater :: Observable Later
+
+    instance observableRepeatedly :: Observable Repeatedly
+
+    instance observableSequentially :: Observable Sequentially
 
     instance observableStream :: Observable Stream
 
+    instance observableWithInterval :: Observable WithInterval
+
+    instance streamLikeEmitter :: StreamLike Emitter
+
+    instance streamLikeFromBinder :: StreamLike FromBinder
+
+    instance streamLikeFromCallback :: StreamLike FromCallback
+
+    instance streamLikeFromPoll :: StreamLike FromPoll
+
+    instance streamLikeInterval :: StreamLike Interval
+
+    instance streamLikeLater :: StreamLike Later
+
+    instance streamLikeNever :: StreamLike Never
+
+    instance streamLikeRepeatedly :: StreamLike Repeatedly
+
+    instance streamLikeSequentially :: StreamLike Sequentially
+
+    instance streamLikeStream :: StreamLike Stream
+
+    instance streamLikeWithInterval :: StreamLike WithInterval
+
+    instance terminableEmitter :: Terminable Emitter
+
+    instance terminableFromBinder :: Terminable FromBinder
+
+    instance terminableFromCallback :: Terminable FromCallback
+
+    instance terminableLater :: Terminable Later
+
+    instance terminableNever :: Terminable Never
+
+    instance terminableSequentially :: Terminable Sequentially
+
+    instance terminableStream :: Terminable Stream
+
+    instance terminableWithInterval :: Terminable WithInterval
+
 
 ### Values
-
-    call0Eff :: forall e o r. Fn2 String o (Eff e r)
-
-    call1Eff :: forall e o a r. Fn3 String o a (Eff e r)
-
-    call2Eff :: forall e o a b r. Fn4 String o a b (Eff e r)
 
     emit :: forall e a. Emitter a -> a -> EffKefir e Unit
 
@@ -67,39 +111,33 @@
 
     end :: forall e a. Emitter a -> EffKefir e Unit
 
-    execute :: forall a. a -> a
+    fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (FromBinder a)
 
-    fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream a)
+    fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (FromCallback a)
 
-    fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream a)
+    fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (FromPoll a)
 
-    fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Endless a)
+    interval :: forall e a. Number -> a -> EffKefir e (Interval a)
 
-    interval :: forall e a. Number -> a -> EffKefir e (Endless a)
+    later :: forall e a. Number -> a -> EffKefir e (Later a)
 
-    later :: forall e a. Number -> a -> EffKefir e (Stream a)
-
-    never :: forall e a. EffKefir e (Endless a)
+    never :: forall e. EffKefir e (Never Unit)
 
     off :: forall e. FunKey -> EffKefir e Unit
 
-    offImpl :: forall e. Fn2 Targets FunKey (EffKefir e Unit)
+    offLog :: forall e stream. (StreamLike stream) => stream _ -> EffKefir e Unit
 
-    onEndImpl :: forall stream e a b. Fn3 Target (stream a) (EffKefir e b) (EffKefir e FunKey)
+    onEnd :: forall e stream a. (Terminable stream) => stream a -> EffKefir e _ -> EffKefir e FunKey
 
-    onValueImpl :: forall stream e a b. Fn3 Target (stream a) (a -> EffKefir e b) (EffKefir e FunKey)
+    onLog :: forall e stream. (StreamLike stream) => stream _ -> String -> EffKefir e Unit
 
-    repeatedly :: forall e a. Number -> [a] -> EffKefir e (Endless a)
+    onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e FunKey
 
-    sequentially :: forall e a. Number -> [a] -> EffKefir e (Stream a)
+    repeatedly :: forall e a. Number -> [a] -> EffKefir e (Repeatedly a)
 
-    targetEnd :: Target
+    sequentially :: forall e a. Number -> [a] -> EffKefir e (Sequentially a)
 
-    targetValue :: Target
-
-    targets :: Targets
-
-    withInterval :: forall e a. Number -> (Emitter a -> EffKefir e Unit) -> EffKefir e (Stream a)
+    withInterval :: forall e a. Number -> (Emitter a -> EffKefir e Unit) -> EffKefir e (WithInterval a)
 
 
 
