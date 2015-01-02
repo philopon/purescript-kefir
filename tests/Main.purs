@@ -158,7 +158,7 @@ main = runMocha $ do
     describe "toPropertyWith" $
       itAsync "should send current and original." $ \done -> do
         e <- emitter
-        p <- toPropertyWith e "foo"
+        p <- toPropertyWith "foo" e
 
         r <- newRef ""
         onValue p $ \v -> modifyRef r (\a -> a ++ v)
@@ -181,7 +181,7 @@ main = runMocha $ do
     describe "withDefault" $ do
       itAsync "should add default to stream" $ \done -> do
         e <- emitter
-        w <- withDefault e "foo"
+        w <- withDefault "foo" e
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)
@@ -196,7 +196,7 @@ main = runMocha $ do
       itAsync "should add default to property missing current value" $ \done -> do
         e <- emitter
         p <- toProperty e
-        w <- withDefault p "foo"
+        w <- withDefault "foo" p
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)
@@ -210,8 +210,8 @@ main = runMocha $ do
 
       itAsync "should be id when property has current value" $ \done -> do
         e <- emitter
-        p <- toPropertyWith e "foo"
-        w <- withDefault p "xxx"
+        p <- toPropertyWith "foo" e
+        w <- withDefault "xxx" p
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)

@@ -274,14 +274,14 @@ offLog = runFn2 call0Eff "offLog"
 toProperty :: forall e stream a. (IsStream stream) => stream a -> EffKefir e (Property a)
 toProperty = runFn2 call0Eff "toProperty"
 
-toPropertyWith :: forall e stream a. (IsStream stream) => stream a -> a -> EffKefir e (Property a)
-toPropertyWith = runFn3 call1Eff "toProperty"
+toPropertyWith :: forall e stream a. (IsStream stream) => a -> stream a -> EffKefir e (Property a)
+toPropertyWith w s = runFn3 call1Eff "toProperty" s w
 
 changes :: forall e stream a. (IsProperty stream) => stream a -> EffKefir e (Stream a)
 changes = runFn2 call0Eff "changes"
 
-withDefault :: forall e stream a. (StreamLike stream) => stream a -> a -> EffKefir e (Property a)
-withDefault = runFn3 call1Eff "withDefault"
+withDefault :: forall e stream a. (StreamLike stream) => a -> stream a -> EffKefir e (Property a)
+withDefault d s = runFn3 call1Eff "withDefault" s d
 
 -- modify an observable
 

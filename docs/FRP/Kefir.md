@@ -217,9 +217,9 @@
 
     toProperty :: forall e stream a. (IsStream stream) => stream a -> EffKefir e (Property a)
 
-    toPropertyWith :: forall e stream a. (IsStream stream) => stream a -> a -> EffKefir e (Property a)
+    toPropertyWith :: forall e stream a. (IsStream stream) => a -> stream a -> EffKefir e (Property a)
 
-    withDefault :: forall e stream a. (StreamLike stream) => stream a -> a -> EffKefir e (Property a)
+    withDefault :: forall e stream a. (StreamLike stream) => a -> stream a -> EffKefir e (Property a)
 
     withInterval :: forall e a. Number -> (Emitter a -> EffKefir e Unit) -> EffKefir e (WithInterval a)
 
