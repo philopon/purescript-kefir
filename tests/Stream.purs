@@ -147,3 +147,18 @@ test = do
           v <- readRef r
           v @?= "foo"
           itIs done
+
+  describe "onAny" $ itAsync "should observe any events" $ \done -> do
+    emt <- emitter
+    prp <- withDefault "def" emt
+    ref <- newRef ""
+    onAny prp $ \ev -> case ev of
+      Value cur v | cur       -> modifyRef ref ((++) $ "v:" ++ v)
+                  | otherwise -> modifyRef ref ((++) $ "c:" ++ v)
+      End -> do
+        v <- readRef ref
+        v @?= "c:foov:def"
+        itIs done
+
+    emit emt "foo"
+    end emt

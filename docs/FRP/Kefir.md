@@ -10,6 +10,10 @@
 
     newtype Emitter a
 
+    data Event a where
+      Value :: Boolean -> a -> Event a
+      End :: Event a
+
     newtype FromBinder a
 
     newtype FromCallback a
@@ -200,6 +204,8 @@
     never :: forall e a. EffKefir e (Never a)
 
     offLog :: forall e stream. (StreamLike stream) => stream _ -> EffKefir e Unit
+
+    onAny :: forall e stream a. (Terminable stream, Observable stream) => stream a -> (Event a -> EffKefir e _) -> EffKefir e (Unregister e)
 
     onEnd :: forall e stream a. (Terminable stream) => stream a -> EffKefir e _ -> EffKefir e (Unregister e)
 

@@ -8,6 +8,7 @@ module FRP.Kefir
   , IsStream
   , IsProperty
 
+  , Event(..), onAny
   , onLog, offLog
 
   , Emitter(), emitter, emit, end
@@ -231,6 +232,9 @@ function onValueImpl(str, fn){
   }
 }""" :: forall stream e a b. Fn2 (stream a) (a -> EffKefir e b) (EffKefir e (Unregister e))
 
+onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
+onValue = runFn2 onValueImpl
+
 foreign import onEndImpl """
 function onEndImpl(str, fn){
   return function onEndImplEff(){
@@ -244,11 +248,33 @@ function onEndImpl(str, fn){
   }
 }""" :: forall stream e a b. Fn2 (stream a) (EffKefir e b) (EffKefir e (Unregister e))
 
-onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
-onValue = runFn2 onValueImpl
-
 onEnd :: forall e stream a. (Terminable stream) => stream a -> (EffKefir e _) -> EffKefir e (Unregister e)
 onEnd = runFn2 onEndImpl
+
+data Event a
+  = Value Boolean a
+  | End
+
+foreign import onAnyImpl """
+function onAnyImpl(cnsts, str, fn){
+  return function onAnyImplEff(){
+    function onAnyCallback(ev){
+      var v = ev.type === 'value'
+        ? cnsts.value(ev.current, ev.value)
+        : cnsts.end;
+      return fn(v)();
+    }
+    str.onAny(onAnyCallback);
+    return function offAnyEff(){
+      str.offAny(onAnyCallback);
+    }
+  }
+}""" :: forall e stream a b. Fn3
+  {value :: Fn2 Boolean a (Event a), end :: Event a}
+  (stream a) (Event a -> EffKefir e b) (EffKefir e (Unregister e))
+
+onAny :: forall e stream a. (Terminable stream, Observable stream) => stream a -> (Event a -> EffKefir e _) -> EffKefir e (Unregister e)
+onAny = runFn3 onAnyImpl {value: mkFn2 Value, end: End}
 
 onLog :: forall e stream. (StreamLike stream) => stream _ -> String -> EffKefir e Unit
 onLog = runFn3 call1Eff "log"
@@ -269,7 +295,6 @@ withDefault :: forall e stream a. (StreamLike stream) => a -> stream a -> EffKef
 withDefault d s = runFn3 call1Eff "withDefault" s d
 
 -- modify an observable
-
 map :: forall e stream a b. (StreamLike stream) => (a -> b) -> stream a -> EffKefir e (Stream b)
 map f s = runFn3 call1Eff "map" s f
 
