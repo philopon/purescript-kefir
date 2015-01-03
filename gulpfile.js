@@ -43,7 +43,7 @@ gulp.task('pscDocs', function(){
 gulp.task('test', function(){
   return gulp
     .src(sources.concat('tests/**/*.purs'))
-    .pipe(purescript.psc({main: "Test.Main", output: "test.js", modules: ['Test.Main', 'Control.Timer']}))
+    .pipe(purescript.psc({main: "Test.Main", output: "test.js"}))
     .pipe(gulp.dest('tmp'))
     .pipe(mocha());
 });

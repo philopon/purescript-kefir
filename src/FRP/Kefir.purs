@@ -38,6 +38,12 @@ module FRP.Kefir
   , reduce1, reduce, reduceEff1, reduceEff
   , mapEnd, SkipEnd(), skipEnd
   , Min(), Max(), slidingWindow
+  , bufferWhile, bufferWhileWith
+  , delay
+  , throttle, throttleWith
+  , debounce, debounceWith
+  , flatten, flattenWith
+  , withHandler
   ) where
 
 import Control.Monad.Eff
@@ -370,3 +376,49 @@ type Min = Number
 type Max = Number
 slidingWindow :: forall e stream a. Min -> Max -> stream a -> EffKefir e (Stream [a])
 slidingWindow min max s = runFn4 call2Eff "slidingWindow" s max min
+
+bufferWhileWith :: forall e stream a. {flushOnEnd :: Boolean} -> (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
+bufferWhileWith opts f s = runFn4 call2Eff "bufferWhile" s f opts
+
+bufferWhile :: forall e stream a. (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
+bufferWhile f s = runFn3 call1Eff "bufferWhile" s f
+
+delay :: forall e stream a. Number -> stream a -> EffKefir e (Stream a)
+delay w s = runFn3 call1Eff "delay" s w
+
+throttleWith :: forall e stream a. {leading :: Boolean, trailing :: Boolean} -> Number -> stream a -> EffKefir e (Stream a)
+throttleWith opts w s = runFn4 call2Eff "throttle" s w opts
+
+throttle :: forall e stream a. Number -> stream a -> EffKefir e (Stream a)
+throttle w s = runFn3 call1Eff "throttle" s w
+
+debounceWith :: forall e stream a. {immediate :: Boolean} -> Number -> stream a -> EffKefir e (Stream a)
+debounceWith opts w s = runFn4 call2Eff "debounce" s w opts
+
+debounce :: forall e stream a. Number -> stream a -> EffKefir e (Stream a)
+debounce w s = runFn3 call1Eff "debounce" s w
+
+flatten :: forall e stream a. stream [a] -> EffKefir e (Stream a)
+flatten = runFn2 call0Eff "flatten"
+
+flattenWith :: forall e stream a b. (a -> [b]) -> stream a -> EffKefir e (Stream b)
+flattenWith f s = runFn3 call1Eff "flatten" s f
+
+foreign import withHandlerImpl """
+function withHandlerImpl(cnsts, src, fun){
+  return function withHandlerImplEff(){
+    return src.withHandler(function(emitter, ev){
+      var v = ev.type === 'value'
+        ? cnsts.value(ev.current, ev.value)
+        : cnsts.end;
+      fun(emitter, v)();
+    });
+  }
+}""" :: forall e stream a b c. Fn3
+  {value :: Fn2 Boolean a (Event a), end :: Event a}
+  (stream a)
+  (Fn2 (Emitter b) (Event a) (EffKefir e c))
+  (EffKefir e (Stream b))
+
+withHandler :: forall e stream a b. (StreamLike stream) => stream a -> (Emitter b -> Event a -> EffKefir e _) -> EffKefir e (Stream b)
+withHandler s f = runFn3 withHandlerImpl {value: mkFn2 Value, end: End} s (mkFn2 f)

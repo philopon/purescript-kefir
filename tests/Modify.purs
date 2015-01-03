@@ -2,12 +2,14 @@ module Test.Modify(main, test) where
 
 import Control.Monad.Eff.Ref
 
+import Data.Date
 import Data.Either(either)
 import Data.Foldable(sum)
 import Data.Traversable(for)
 import Data.Array(range)
 import Data.Foreign.Class(readJSON)
 
+import Test.Common
 import Test.Assert.Simple
 import Test.PSpec hiding (skip)
 import Test.PSpec.Mocha
@@ -357,3 +359,152 @@ test = do
           v @?= [[3,4,5],[2,3,4],[1,2,3],[0,1,2],[0,1]]
 
         onEnd r $ itIs done
+
+    describe "bufferWhile" $
+      itAsync "should buffering" $ \done -> do
+        src <- sequentially 1 (range 1 5)
+        res <- bufferWhile (\x -> x /= 3) src
+
+        ref <- newRef []
+        onValue res $ modifyRef ref <<< (:)
+        onEnd res $ do
+          v <- readRef ref
+          v @?= [[4,5],[1,2,3]]
+          itIs done
+
+    describe "bufferWhileWith" $
+      itAsync "should buffering and drop trailing" $ \done -> do
+        src <- sequentially 1 (range 1 5)
+        res <- bufferWhileWith {flushOnEnd: false} (\x -> x /= 3) src
+
+        ref <- newRef []
+        onValue res $ modifyRef ref <<< (:)
+        onEnd res $ do
+          v <- readRef ref
+          v @?= [[1,2,3]]
+          itIs done
+
+    describe "delay" $
+      itAsync "should delay stream" $ \done -> do
+        src <- emitter
+        dly <- delay 50 src
+        n   <- now
+
+        onValue dly $ \_ -> do
+          n' <- now
+          assertAbout 0.2 50 (toEpochMilliseconds n' - toEpochMilliseconds n)
+
+        onEnd dly $ itIs done
+
+        emit src 1
+        end src
+
+    describe "throttle" $
+      itAsync "should throttle stream" $ \done -> do
+        src <- sequentially 50 (range 0 10)
+        thr <- throttle 175 src
+
+        ref <- newRef []
+        onValue thr $ modifyRef ref <<< (:)
+        onEnd thr $ do
+          v <- readRef ref
+          v @?= [10,6,3,0]
+          itIs done
+
+    describe "throttleWith" $ do
+      itAsync "should throttle stream(trailing:false)" $ \done -> do
+        src <- sequentially 50 (range 0 10)
+        thr <- throttleWith {leading: true, trailing: false} 175 src
+
+        ref <- newRef []
+        onValue thr $ modifyRef ref <<< (:)
+        onEnd thr $ do
+          v <- readRef ref
+          v @?= [8,4,0]
+          itIs done
+
+      itAsync "should throttle stream(leading:false)" $ \done -> do
+        src <- sequentially 50 (range 0 10)
+        thr <- throttleWith {leading: false, trailing: true} 175 src
+
+        ref <- newRef []
+        onValue thr $ modifyRef ref <<< (:)
+        onEnd thr $ do
+          v <- readRef ref
+          v @?= [10,7,3]
+          itIs done
+
+      itAsync "should throttle stream(trailing,leading:false)" $ \done -> do
+        src <- sequentially 50 (range 0 10)
+        thr <- throttleWith {leading: false, trailing: false} 175 src
+
+        ref <- newRef []
+        onValue thr $ modifyRef ref <<< (:)
+        onEnd thr $ do
+          v <- readRef ref
+          v @?= [8,4]
+          itIs done
+
+    describe "debounce" $
+      itAsync "should debounce" $ \done -> do
+        src <- sequentially 50 [1,2,3,0,0,0,4,5,6]
+        flt <- filter (\v -> v > 0) src
+        deb <- debounce 175 flt
+
+        ref <- newRef []
+        onValue deb $ modifyRef ref <<< (:)
+        onEnd deb $ do
+          v <- readRef ref
+          v @?= [6,3]
+          itIs done
+
+    describe "debounceWith" $
+      itAsync "should debounce" $ \done -> do
+        src <- sequentially 50 [1,2,3,0,0,0,4,5,6]
+        flt <- filter (\v -> v > 0) src
+        deb <- debounceWith {immediate: true} 175 flt
+
+        ref <- newRef []
+        onValue deb $ modifyRef ref <<< (:)
+        onEnd deb $ do
+          v <- readRef ref
+          v @?= [4,1]
+          itIs done
+
+    describe "flatten" $
+      itAsync "should flatten input" $ \done -> do
+        src <- sequentially 0 [[1], [], [2,3]]
+        flt <- flatten src
+
+        ref <- newRef []
+        onValue flt $ modifyRef ref <<< (:)
+        onEnd flt $ do
+          v <- readRef ref
+          v @?= [3,2,1]
+          itIs done
+
+    describe "flattenWith" $
+      itAsync "should flatten input with function" $ \done -> do
+        src <- sequentially 0 [1,2,3,4]
+        flt <- flattenWith (\v -> if v % 2 == 0 then [v*10] else []) src
+
+        ref <- newRef []
+        onValue flt $ modifyRef ref <<< (:)
+        onEnd flt $ do
+          v <- readRef ref
+          v @?= [40,20]
+          itIs done
+    
+    describe "withHandler" $
+      itAsync "should withHandler" $ \done -> do
+        src <- sequentially 0 [0,1,2,3]
+        hdr <- withHandler src $ \emt ev -> case ev of
+            End -> emit emt "end" >>= \_ -> end emt
+            Value _ v -> emit emt (show v)
+
+        ref <- newRef ""
+        onValue hdr $ modifyRef ref <<< (++)
+        onEnd hdr $ do
+          v <- readRef ref
+          v @?= "end3210"
+          itIs done

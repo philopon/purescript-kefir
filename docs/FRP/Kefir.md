@@ -167,9 +167,19 @@
 
 ### Values
 
+    bufferWhile :: forall e stream a. (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
+
+    bufferWhileWith :: forall e stream a. { flushOnEnd :: Boolean } -> (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
+
     changes :: forall e stream a. (IsProperty stream) => stream a -> EffKefir e (Stream a)
 
     constant :: forall e a. a -> EffKefir e (Constant a)
+
+    debounce :: forall e stream a. Number -> stream a -> EffKefir e (Stream a)
+
+    debounceWith :: forall e stream a. { immediate :: Boolean } -> Number -> stream a -> EffKefir e (Stream a)
+
+    delay :: forall e stream a. Number -> stream a -> EffKefir e (Stream a)
 
     diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
 
@@ -184,6 +194,10 @@
     filter :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
 
     filterEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+
+    flatten :: forall e stream a. stream [a] -> EffKefir e (Stream a)
+
+    flattenWith :: forall e stream a b. (a -> [b]) -> stream a -> EffKefir e (Stream b)
 
     fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (FromBinder a)
 
@@ -249,11 +263,17 @@
 
     takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 
+    throttle :: forall e stream a. Number -> stream a -> EffKefir e (Stream a)
+
+    throttleWith :: forall e stream a. { trailing :: Boolean, leading :: Boolean } -> Number -> stream a -> EffKefir e (Stream a)
+
     toProperty :: forall e stream a. (IsStream stream) => stream a -> EffKefir e (Property a)
 
     toPropertyWith :: forall e stream a. (IsStream stream) => a -> stream a -> EffKefir e (Property a)
 
     withDefault :: forall e stream a. (StreamLike stream) => a -> stream a -> EffKefir e (Property a)
+
+    withHandler :: forall e stream a b. (StreamLike stream) => stream a -> (Emitter b -> Event a -> EffKefir e _) -> EffKefir e (Stream b)
 
     withInterval :: forall e a. Number -> (Emitter a -> EffKefir e Unit) -> EffKefir e (WithInterval a)
 

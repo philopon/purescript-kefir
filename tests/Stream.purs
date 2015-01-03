@@ -5,15 +5,12 @@ import qualified Control.Timer as T
 
 import Data.Date
 
+import Test.Common
 import Test.Assert.Simple
 import Test.PSpec hiding (skip)
 import Test.PSpec.Mocha
 
 import FRP.Kefir
-
-assertAbout e a = if e * 0.9 < a && a < e * 1.1 then return unit else assertFailure msg
-  where
-    msg = "expected: about " ++ show e ++ " but got: " ++ show a
 
 main = runMocha test
 
@@ -49,7 +46,7 @@ test = do
           v @?= "bar"
         onEnd l $ do
           ed <- now
-          assertAbout 50 (toEpochMilliseconds ed - toEpochMilliseconds st)
+          assertAbout 0.1 50 (toEpochMilliseconds ed - toEpochMilliseconds st)
           itIs done
 
     describe "interval" $ do
