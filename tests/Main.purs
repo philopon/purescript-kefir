@@ -39,6 +39,11 @@ main = runMocha $ do
         onEnd e $ itIs done
         end e
 
+    describe "never" $
+      itAsync "should send end" $ \done -> do
+        n <- never
+        onEnd n $ itIs done
+
     describe "later" $ do
       itAsync "should emit 1 value and end, 100ms later." $ \done -> do
         st <- now
@@ -382,26 +387,26 @@ main = runMocha $ do
           v @?= [5,4,3,2,1]
           itIs done
     
+    describe "diff1" $
+      itAsync "should calc diffs" $ \done -> do
+        p <- sequentially 1 (range 0 10)
+        d <- diff1 (\p n -> n - p) p
+
+        onValue d $ \v -> v @?= 1
+        onEnd d $ itIs done
+
     describe "diff" $
       itAsync "should calc diffs" $ \done -> do
         p <- sequentially 1 (range 0 10)
-        d <- diff (\p n -> n - p) p
+        d <- diff (\p n -> n - p) (-1) p
 
         onValue d $ \v -> v @?= 1
         onEnd d $ itIs done
 
-    describe "diffWith" $
-      itAsync "should calc diffs" $ \done -> do
-        p <- sequentially 1 (range 0 10)
-        d <- diffWith (\p n -> n - p) (-1) p
-
-        onValue d $ \v -> v @?= 1
-        onEnd d $ itIs done
-
-    describe "scan" $
+    describe "scan1" $
       itAsync "should scan" $ \done -> do
         s <- sequentially 1 (range 3 6)
-        n <- scan (+) s
+        n <- scan1 (+) s
 
         r <- newRef 0
         onValue n $ modifyRef r <<< (+)
@@ -411,10 +416,10 @@ main = runMocha $ do
           v @?= 3 + (3 + 4) + (3 + 4 + 5) + (3 + 4 + 5 + 6)
           itIs done
     
-    describe "scanWith" $
+    describe "scan" $
       itAsync "should scan with initial value" $ \done -> do
-        s <- sequentially 1 (range 3 6)
-        n <- scanWith (+) (2) s
+        s <- sequentially 1 (show <$> range 3 6)
+        n <- scan (\n i -> n + either (show >>> itIsNot' done) id (readJSON i)) 2 s
 
         r <- newRef 0
         onValue n $ modifyRef r <<< (+)
@@ -424,34 +429,65 @@ main = runMocha $ do
           v @?= 2 + (2 + 3) + (2 + 3 + 4) + (2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)
           itIs done
 
-    describe "reduce" $
+    describe "reduce1" $
       itAsync "should reduce to value" $ \done -> do
         s <- sequentially 1 (range 0 10)
-        r <- reduce (+) s
+        r <- reduce1 (+) s
 
         onValue r $ (@=?) 55
         onEnd r $ itIs done
 
-    describe "reduceWith" $
+    describe "reduce" $
       itAsync "should read and reduce to value" $ \done -> do
         s <- sequentially 1 (show <$> range 0 10)
-        r <- reduceWith (\b a -> either (show >>> itIsNot' done) id (readJSON a) + b) 0 s
+        r <- reduce (\b a -> either (show >>> itIsNot' done) id (readJSON a) + b) 0 s
+
+        onValue r $ (@=?) 55
+        onEnd r $ itIs done
+
+    describe "reduceEff1" $
+      itAsync "should reduce to value with side effect" $ \done -> do
+        s <- sequentially 1 (range 0 10)
+        r <- reduceEff1 (\a b -> return $ a + b) s
 
         onValue r $ (@=?) 55
         onEnd r $ itIs done
 
     describe "reduceEff" $
-      itAsync "should reduce to value with side effect" $ \done -> do
-        s <- sequentially 1 (range 0 10)
-        r <- reduceEff (\a b -> return $ a + b) s
+      itAsync "should read and reduce to value with side effect" $ \done -> do
+        s <- sequentially 1 (show <$> range 0 10)
+        r <- reduceEff (\b a -> either (show >>> itIsNot done) ((+) b >>> return) (readJSON a)) 0 s
 
         onValue r $ (@=?) 55
         onEnd r $ itIs done
 
-    describe "reduceEffWith" $
-      itAsync "should read and reduce to value with side effect" $ \done -> do
-        s <- sequentially 1 (show <$> range 0 10)
-        r <- reduceEffWith (\b a -> either (show >>> itIsNot done) ((+) b >>> return) (readJSON a)) 0 s
+    describe "mapEnd" $
+      itAsync "should mapping to End" $ \done -> do
+        n <- never
+        v <- mapEnd (return "foo") n
+        onValue v $ (@=?) "foo"
+        onEnd v $ itIs done
 
-        onValue r $ (@=?) 55
+    describe "skipEnd" $
+      it "should ignore End" $ do
+        e <- emitter
+        s <- skipEnd e
+        
+        r <- newRef ""
+        onValue s $ writeRef r
+
+        emit e "foo"
+        end e
+        v <- readRef r
+        v @?= "foo"
+
+    describe "slidingWindow" $
+      itAsync "should get sliding" $ \done -> do
+        s <- sequentially 1 (range 0 5)
+        w <- slidingWindow 2 3 s
+        r <- reduce (\l i -> i : l) [] w
+
+        onValue r $ \v ->
+          v @?= [[3,4,5],[2,3,4],[1,2,3],[0,1,2],[0,1]]
+
         onEnd r $ itIs done

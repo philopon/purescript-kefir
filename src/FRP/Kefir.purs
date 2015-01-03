@@ -31,10 +31,12 @@ module FRP.Kefir
   , filter, filterEff
   , take, takeWhile, takeWhileEff
   , skip, skipWhile, skipWhileEff
-  , skipDuplicates, skipDuplicatesWith
-  , diff, diffWith
-  , scan, scanWith
-  , reduce, reduceWith, reduceEff, reduceEffWith
+  , skipDuplicatesWith, skipDuplicates
+  , diff1, diff
+  , scan1, scan
+  , reduce1, reduce, reduceEff1, reduceEff
+  , mapEnd, SkipEnd(), skipEnd
+  , Min(), Max(), slidingWindow
   ) where
 
 import Control.Monad.Eff
@@ -74,6 +76,13 @@ foreign import execute """
     return m();
   }""" :: forall e a. Eff e a -> a
 
+foreign import wrap """
+function wrap(m){
+  return function wrapEff(){
+    return m();
+  }
+}""" :: forall e a. Eff e a -> Eff e a
+
 -- Stream
 class  StreamLike (stream :: * -> *)
 class (StreamLike stream) <= Terminable stream
@@ -110,7 +119,7 @@ instance isStreamEmitter   :: IsStream   Emitter
 
 -- never
 newtype Never a = Never (Stream a)
-never :: forall e. EffKefir e (Never Unit)
+never :: forall e a. EffKefir e (Never a)
 never = runFn2 call0Eff "never" kefir
 
 instance streamLikeNever :: StreamLike Never
@@ -323,27 +332,42 @@ skipDuplicatesWith f s = runFn3 call1Eff "skipDuplicates" s (mkFn2 f)
 skipDuplicates :: forall e stream a. (StreamLike stream, Eq a) => stream a -> EffKefir e (Stream a)
 skipDuplicates = skipDuplicatesWith (==)
 
-diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
-diff f s = runFn3 call1Eff "diff" s (mkFn2 f)
+diff1 :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
+diff1 f s = runFn3 call1Eff "diff" s (mkFn2 f)
 
-diffWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
-diffWith f a s = runFn4 call2Eff "diff" s (mkFn2 f) a
+diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
+diff f a s = runFn4 call2Eff "diff" s (mkFn2 f) a
 
-scan :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
-scan f s = runFn3 call1Eff "scan" s (mkFn2 f)
+scan1 :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
+scan1 f s = runFn3 call1Eff "scan" s (mkFn2 f)
 
-scanWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
-scanWith f a s = runFn4 call2Eff "scan" s (mkFn2 f) a
+scan :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
+scan f a s = runFn4 call2Eff "scan" s (mkFn2 f) a
 
-reduce :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
-reduce f s = runFn3 call1Eff "reduce" s (mkFn2 f)
+reduce1 :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
+reduce1 f s = runFn3 call1Eff "reduce" s (mkFn2 f)
 
-reduceWith :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
-reduceWith f a s = runFn4 call2Eff "reduce" s (mkFn2 f) a
+reduce :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
+reduce f a s = runFn4 call2Eff "reduce" s (mkFn2 f) a
 
-reduceEff :: forall e stream a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream a -> EffKefir e (Stream a)
-reduceEff f s = runFn3 call1Eff "reduce" s (mkFn2 (\a b -> execute (f a b)))
+reduceEff1 :: forall e stream a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream a -> EffKefir e (Stream a)
+reduceEff1 f s = runFn3 call1Eff "reduce" s (mkFn2 (\a b -> execute (f a b)))
 
-reduceEffWith :: forall e stream a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream a -> EffKefir e (Stream b)
-reduceEffWith f a s = runFn4 call2Eff "reduce" s (mkFn2 (\a b -> execute (f a b))) a
+reduceEff :: forall e stream a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream a -> EffKefir e (Stream b)
+reduceEff f a s = runFn4 call2Eff "reduce" s (mkFn2 (\a b -> execute (f a b))) a
 
+mapEnd :: forall e stream a. EffKefir e a -> stream a -> EffKefir e (Stream a)
+mapEnd f s = runFn3 call1Eff "mapEnd" s (wrap f)
+
+newtype SkipEnd a = SkipEnd (Stream a)
+instance streamLikeSkipEnd :: StreamLike SkipEnd
+instance observableSkipEnd :: Observable SkipEnd
+instance isStreamSkipEnd   :: IsStream   SkipEnd
+
+skipEnd :: forall e stream a. stream a -> EffKefir e (SkipEnd a)
+skipEnd = runFn2 call0Eff "skipEnd"
+
+type Min = Number
+type Max = Number
+slidingWindow :: forall e stream a. Min -> Max -> stream a -> EffKefir e (Stream [a])
+slidingWindow min max s = runFn4 call2Eff "slidingWindow" s max min

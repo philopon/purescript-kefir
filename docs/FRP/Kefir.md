@@ -24,6 +24,10 @@
 
     newtype Later a
 
+    type Max = Number
+
+    type Min = Number
+
     newtype Never a
 
     data Property :: * -> *
@@ -31,6 +35,8 @@
     newtype Repeatedly a
 
     newtype Sequentially a
+
+    newtype SkipEnd a
 
     data Stream :: * -> *
 
@@ -74,6 +80,8 @@
 
     instance isStreamSequentially :: IsStream Sequentially
 
+    instance isStreamSkipEnd :: IsStream SkipEnd
+
     instance isStreamStream :: IsStream Stream
 
     instance isStreamWithInterval :: IsStream WithInterval
@@ -97,6 +105,8 @@
     instance observableRepeatedly :: Observable Repeatedly
 
     instance observableSequentially :: Observable Sequentially
+
+    instance observableSkipEnd :: Observable SkipEnd
 
     instance observableStream :: Observable Stream
 
@@ -123,6 +133,8 @@
     instance streamLikeRepeatedly :: StreamLike Repeatedly
 
     instance streamLikeSequentially :: StreamLike Sequentially
+
+    instance streamLikeSkipEnd :: StreamLike SkipEnd
 
     instance streamLikeStream :: StreamLike Stream
 
@@ -155,9 +167,9 @@
 
     constant :: forall e a. a -> EffKefir e (Constant a)
 
-    diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
+    diff :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
 
-    diffWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
+    diff1 :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
 
     emit :: forall e a. Emitter a -> a -> EffKefir e Unit
 
@@ -183,7 +195,9 @@
 
     mapEff :: forall e stream a b. (StreamLike stream) => (a -> EffKefir e b) -> stream a -> EffKefir e (Stream b)
 
-    never :: forall e. EffKefir e (Never Unit)
+    mapEnd :: forall e stream a. EffKefir e a -> stream a -> EffKefir e (Stream a)
+
+    never :: forall e a. EffKefir e (Never a)
 
     off :: forall e. FunKey -> EffKefir e Unit
 
@@ -195,19 +209,19 @@
 
     onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e FunKey
 
-    reduce :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
+    reduce :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
 
-    reduceEff :: forall e stream a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream a -> EffKefir e (Stream a)
+    reduce1 :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
 
-    reduceEffWith :: forall e stream a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream a -> EffKefir e (Stream b)
+    reduceEff :: forall e stream a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream a -> EffKefir e (Stream b)
 
-    reduceWith :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
+    reduceEff1 :: forall e stream a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream a -> EffKefir e (Stream a)
 
     repeatedly :: forall e a. Number -> [a] -> EffKefir e (Repeatedly a)
 
-    scan :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
+    scan :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
 
-    scanWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
+    scan1 :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
 
     sequentially :: forall e a. Number -> [a] -> EffKefir e (Sequentially a)
 
@@ -217,9 +231,13 @@
 
     skipDuplicatesWith :: forall e stream a. (StreamLike stream) => (a -> a -> Boolean) -> stream a -> EffKefir e (Stream a)
 
+    skipEnd :: forall e stream a. stream a -> EffKefir e (SkipEnd a)
+
     skipWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
 
     skipWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
+
+    slidingWindow :: forall e stream a. Min -> Max -> stream a -> EffKefir e (Stream [a])
 
     take :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
 
