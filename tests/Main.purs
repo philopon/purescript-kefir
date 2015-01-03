@@ -394,3 +394,29 @@ main = runMocha $ do
 
         onValue d $ \v -> v @?= 1
         onEnd d $ itIs done
+
+    describe "scan" $
+      itAsync "should scan" $ \done -> do
+        s <- sequentially 1 (range 3 6)
+        n <- scan (+) s
+
+        r <- newRef 0
+        onValue n $ modifyRef r <<< (+)
+
+        onEnd n $ do
+          v <- readRef r
+          v @?= 3 + (3 + 4) + (3 + 4 + 5) + (3 + 4 + 5 + 6)
+          itIs done
+    
+    describe "scanWith" $
+      itAsync "should scan with initial value" $ \done -> do
+        s <- sequentially 1 (range 3 6)
+        n <- scanWith (+) (2) s
+
+        r <- newRef 0
+        onValue n $ modifyRef r <<< (+)
+
+        onEnd n $ do
+          v <- readRef r
+          v @?= 2 + (2 + 3) + (2 + 3 + 4) + (2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)
+          itIs done

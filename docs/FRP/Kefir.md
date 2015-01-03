@@ -197,6 +197,10 @@
 
     repeatedly :: forall e a. Number -> [a] -> EffKefir e (Repeatedly a)
 
+    scan :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
+
+    scanWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
+
     sequentially :: forall e a. Number -> [a] -> EffKefir e (Sequentially a)
 
     skip :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
