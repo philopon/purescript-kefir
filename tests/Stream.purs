@@ -54,13 +54,13 @@ test = do
 
     describe "interval" $ do
       itAsync "should emit same values, forever." $ \done -> do
-        i <- interval 50 "baz"
-        r <- newRef ""
-        k <- onValue i $ \v -> modifyRef r (\a -> a ++ v)
+        i    <- interval 50 "baz"
+        r    <- newRef ""
+        offk <- onValue i $ \v -> modifyRef r (\a -> a ++ v)
         T.timeout 175 $ do
           v <- readRef r
           v @?= "bazbazbaz"
-          off k
+          offk
           itIs done
 
     describe "sequentially" $ do
@@ -75,25 +75,25 @@ test = do
 
     describe "repeatedly" $ do
       itAsync "should emit values forever" $ \done -> do
-        p <- repeatedly 50 ["foo", "bar"]
-        r <- newRef ""
-        k <- onValue p $ \v -> modifyRef r (\a -> a ++ v)
+        p    <- repeatedly 50 ["foo", "bar"]
+        r    <- newRef ""
+        offk <- onValue p $ \v -> modifyRef r (\a -> a ++ v)
         T.timeout 175 $ do
           v <- readRef r
           v @?= "foobarfoo"
-          off k
+          offk
           itIs done
 
     describe "fromPoll" $ do
       itAsync "should polling" $ \done -> do
-        c <- newRef 7
-        p <- fromPoll 50 $ modifyRef' c (\i -> {retVal: i, newState: i * 2})
-        r <- newRef 0
-        k <- onValue p $ \v -> modifyRef r (\a -> a + v)
+        c    <- newRef 7
+        p    <- fromPoll 50 $ modifyRef' c (\i -> {retVal: i, newState: i * 2})
+        r    <- newRef 0
+        offk <- onValue p $ \v -> modifyRef r (\a -> a + v)
         T.timeout 125 $ do
           v <- readRef r
           v @?= 7 * 3
-          off k
+          offk
           itIs done
 
     describe "withInterval" $

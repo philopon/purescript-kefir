@@ -2,12 +2,12 @@ module FRP.Kefir
   ( Kefir(), Stream(), Property(), EffKefir()
 
   , StreamLike
+  , Unregister()
   , Terminable, onEnd
   , Observable, onValue
   , IsStream
   , IsProperty
 
-  , FunKey(), off
   , onLog, offLog
 
   , Emitter(), emitter, emit, end
@@ -46,7 +46,6 @@ import Data.Function
 foreign import data Kefir   :: !
 foreign import data Stream   :: * -> *
 foreign import data Property :: * -> *
-foreign import data RegisteredFunction :: *
 
 type EffKefir e = Eff (kefir :: Kefir | e)
 
@@ -217,64 +216,39 @@ instance terminableConstant :: Terminable Constant
 instance isPropertyConstant :: IsProperty Constant
 
 -- Observable Impl
-
-newtype Target = Target Number
-
-targetValue :: Target
-targetValue = Target 0
-
-targetEnd :: Target
-targetEnd = Target 1
-
-type Targets = {value :: Target, end :: Target}
-
-targets :: Targets
-targets = {value: targetValue, end: targetEnd }
-
-foreign import data DummyStream :: *
-newtype FunKey = FunKey {stream :: DummyStream, target :: Target, function :: RegisteredFunction}
+type Unregister e = EffKefir e Unit
 
 foreign import onValueImpl """
-function onValueImpl(tgt, str, fn){
+function onValueImpl(str, fn){
   return function onValueImplEff(){
     function onValueCallback(x){
       fn(x)();
     };
     str.onValue(onValueCallback);
-    return {stream: str, target: tgt, function: onValueCallback}
+    return function offValueEff() {
+      str.offValue(onValueCallback);
+    }
   }
-}""" :: forall stream e a b. Fn3 Target (stream a) (a -> EffKefir e b) (EffKefir e FunKey)
+}""" :: forall stream e a b. Fn2 (stream a) (a -> EffKefir e b) (EffKefir e (Unregister e))
 
 foreign import onEndImpl """
-function onEndImpl(tgt, str, fn){
+function onEndImpl(str, fn){
   return function onEndImplEff(){
     function onEndCallback(){
       fn();
     }
     str.onEnd(onEndCallback);
-    return {stream: str, target: tgt, function: onEndCallback}
-  }
-}""" :: forall stream e a b. Fn3 Target (stream a) (EffKefir e b) (EffKefir e FunKey)
-
-foreign import offImpl """
-function offImpl(targets, key){
-  return function offImplEff() {
-    if(key.target === targets.value) {
-      key.stream.offValue(key.function);
-    } else {
-      key.stream.offEnd(key.function);
+    return function offEndEff() {
+      str.offEnd(onEndCallback);
     }
   }
-}""" :: forall e. Fn2 Targets FunKey (EffKefir e Unit)
+}""" :: forall stream e a b. Fn2 (stream a) (EffKefir e b) (EffKefir e (Unregister e))
 
-off :: forall e. FunKey -> EffKefir e Unit
-off = runFn2 offImpl targets
+onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
+onValue = runFn2 onValueImpl
 
-onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e FunKey
-onValue = runFn3 onValueImpl targetValue
-
-onEnd :: forall e stream a. (Terminable stream) => stream a -> (EffKefir e _) -> EffKefir e FunKey
-onEnd = runFn3 onEndImpl targetEnd
+onEnd :: forall e stream a. (Terminable stream) => stream a -> (EffKefir e _) -> EffKefir e (Unregister e)
+onEnd = runFn2 onEndImpl
 
 onLog :: forall e stream. (StreamLike stream) => stream _ -> String -> EffKefir e Unit
 onLog = runFn3 call1Eff "log"

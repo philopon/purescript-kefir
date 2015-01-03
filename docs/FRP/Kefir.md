@@ -16,8 +16,6 @@
 
     newtype FromPoll a
 
-    newtype FunKey
-
     newtype Interval a
 
     data Kefir :: !
@@ -39,6 +37,8 @@
     newtype SkipEnd a
 
     data Stream :: * -> *
+
+    type Unregister e = EffKefir e Unit
 
     newtype WithInterval a
 
@@ -199,15 +199,13 @@
 
     never :: forall e a. EffKefir e (Never a)
 
-    off :: forall e. FunKey -> EffKefir e Unit
-
     offLog :: forall e stream. (StreamLike stream) => stream _ -> EffKefir e Unit
 
-    onEnd :: forall e stream a. (Terminable stream) => stream a -> EffKefir e _ -> EffKefir e FunKey
+    onEnd :: forall e stream a. (Terminable stream) => stream a -> EffKefir e _ -> EffKefir e (Unregister e)
 
     onLog :: forall e stream. (StreamLike stream) => stream _ -> String -> EffKefir e Unit
 
-    onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e FunKey
+    onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
 
     reduce :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
 
