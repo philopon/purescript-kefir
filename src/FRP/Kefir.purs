@@ -34,6 +34,7 @@ module FRP.Kefir
   , skipDuplicates, skipDuplicatesWith
   , diff, diffWith
   , scan, scanWith
+  , reduce, reduceWith, reduceEff, reduceEffWith
   ) where
 
 import Control.Monad.Eff
@@ -71,7 +72,7 @@ foreign import call2Eff """
 foreign import execute """
   function execute(m){
     return m();
-  }""" :: forall a. a -> a
+  }""" :: forall e a. Eff e a -> a
 
 -- Stream
 class  StreamLike (stream :: * -> *)
@@ -333,4 +334,16 @@ scan f s = runFn3 call1Eff "scan" s (mkFn2 f)
 
 scanWith :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> a -> stream a -> EffKefir e (Stream b)
 scanWith f a s = runFn4 call2Eff "scan" s (mkFn2 f) a
+
+reduce :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
+reduce f s = runFn3 call1Eff "reduce" s (mkFn2 f)
+
+reduceWith :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
+reduceWith f a s = runFn4 call2Eff "reduce" s (mkFn2 f) a
+
+reduceEff :: forall e stream a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream a -> EffKefir e (Stream a)
+reduceEff f s = runFn3 call1Eff "reduce" s (mkFn2 (\a b -> execute (f a b)))
+
+reduceEffWith :: forall e stream a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream a -> EffKefir e (Stream b)
+reduceEffWith f a s = runFn4 call2Eff "reduce" s (mkFn2 (\a b -> execute (f a b))) a
 

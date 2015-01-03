@@ -1,11 +1,14 @@
 module Test.Main where
 
 import Control.Monad.Eff.Ref
+import qualified Control.Timer as T
+
 import Data.Traversable
 import Data.Foldable
-import qualified Control.Timer as T
 import Data.Date
+import Data.Either(either)
 import Data.Array(range)
+import Data.Foreign.Class(readJSON)
 
 import Test.Assert.Simple
 import Test.PSpec hiding (skip)
@@ -420,3 +423,35 @@ main = runMocha $ do
           v <- readRef r
           v @?= 2 + (2 + 3) + (2 + 3 + 4) + (2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)
           itIs done
+
+    describe "reduce" $
+      itAsync "should reduce to value" $ \done -> do
+        s <- sequentially 1 (range 0 10)
+        r <- reduce (+) s
+
+        onValue r $ (@=?) 55
+        onEnd r $ itIs done
+
+    describe "reduceWith" $
+      itAsync "should read and reduce to value" $ \done -> do
+        s <- sequentially 1 (show <$> range 0 10)
+        r <- reduceWith (\b a -> either (show >>> itIsNot' done) id (readJSON a) + b) 0 s
+
+        onValue r $ (@=?) 55
+        onEnd r $ itIs done
+
+    describe "reduceEff" $
+      itAsync "should reduce to value with side effect" $ \done -> do
+        s <- sequentially 1 (range 0 10)
+        r <- reduceEff (\a b -> return $ a + b) s
+
+        onValue r $ (@=?) 55
+        onEnd r $ itIs done
+
+    describe "reduceEffWith" $
+      itAsync "should read and reduce to value with side effect" $ \done -> do
+        s <- sequentially 1 (show <$> range 0 10)
+        r <- reduceEffWith (\b a -> either (show >>> itIsNot done) ((+) b >>> return) (readJSON a)) 0 s
+
+        onValue r $ (@=?) 55
+        onEnd r $ itIs done
