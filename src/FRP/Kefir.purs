@@ -1,5 +1,6 @@
 module FRP.Kefir
   ( Kefir(), Stream(), Property(), EffKefir()
+  , Terminable(), Observable(), Emittable(), Pluggable()
   , HasE(), HasO(), HasP(), HasT()
   , E(), O(), P(), T(), OT(), OP(), EOT(), EOPT()
 

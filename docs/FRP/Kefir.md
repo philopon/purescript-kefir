@@ -12,6 +12,8 @@
 
     type EffKefir e = Eff (kefir :: Kefir | e)
 
+    data Emittable :: *
+
     data Event a where
       Value :: Boolean -> a -> Event a
       End :: Event a
@@ -36,13 +38,19 @@
 
     type OT = (terminable :: Terminable, observable :: Observable)
 
+    data Observable :: *
+
     type P = HasP ()
+
+    data Pluggable :: *
 
     data Property :: # * -> * -> *
 
     data Stream :: # * -> * -> *
 
     type T = HasT ()
+
+    data Terminable :: *
 
     type Unregister e = EffKefir e Unit
 
