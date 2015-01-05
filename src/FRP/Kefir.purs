@@ -293,102 +293,102 @@ withDefault :: forall stream s a. (StreamLike stream) => a -> stream _ s a -> Ef
 withDefault d s = runFn3 call1Eff "withDefault" s d
 
 -- modify an observable
-map :: forall stream s a b. (StreamLike stream) => (a -> b) -> stream _ s a -> EffKefir _ (Stream () s b)
+map :: forall stream s a b. (StreamLike stream) => (a -> b) -> stream _ s a -> EffKefir _ (stream () s b)
 map f s = runFn3 call1Eff "map" s f
 
-mapEff :: forall e stream s a b. (StreamLike stream) => (a -> EffKefir e b) -> stream _ s a -> EffKefir e (Stream () s b)
+mapEff :: forall e stream s a b. (StreamLike stream) => (a -> EffKefir e b) -> stream _ s a -> EffKefir e (stream () s b)
 mapEff f s = runFn3 call1Eff "map" s (\v -> execute (f v))
 
-filter :: forall stream s a. (StreamLike stream) => (a -> Boolean) -> stream _ s a -> EffKefir _ (Stream () s a)
+filter :: forall stream s a. (StreamLike stream) => (a -> Boolean) -> stream _ s a -> EffKefir _ (stream () s a)
 filter f s = runFn3 call1Eff "filter" s f
 
-filterEff :: forall e stream s a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream _ s a -> EffKefir e (Stream () s a)
+filterEff :: forall e stream s a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream _ s a -> EffKefir e (stream () s a)
 filterEff f s = runFn3 call1Eff "filter" s (\v -> execute (f v))
 
-take :: forall stream a. (StreamLike stream) => Number -> stream _ _ a -> EffKefir _ (Stream () OT a)
+take :: forall stream a. (StreamLike stream) => Number -> stream _ _ a -> EffKefir _ (stream () OT a)
 take n s = runFn3 call1Eff "take" s n
 
-takeWhile :: forall stream a. (StreamLike stream) => (a -> Boolean) -> stream _ _ a -> EffKefir _ (Stream () OT a)
+takeWhile :: forall stream a. (StreamLike stream) => (a -> Boolean) -> stream _ _ a -> EffKefir _ (stream () OT a)
 takeWhile f s = runFn3 call1Eff "takeWhile" s f
 
-takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream _ _ a -> EffKefir e (Stream () OT a)
+takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream _ _ a -> EffKefir e (stream () OT a)
 takeWhileEff f s = runFn3 call1Eff "takeWhile" s (\v -> execute (f v))
 
-skip :: forall stream s a. (StreamLike stream) => Number -> stream _ s a -> EffKefir _ (Stream () s a)
+skip :: forall stream s a. (StreamLike stream) => Number -> stream _ s a -> EffKefir _ (stream () s a)
 skip n s = runFn3 call1Eff "skip" s n
 
-skipWhile :: forall stream s a. (StreamLike stream) => (a -> Boolean) -> stream _ s a -> EffKefir _ (Stream () s a)
+skipWhile :: forall stream s a. (StreamLike stream) => (a -> Boolean) -> stream _ s a -> EffKefir _ (stream () s a)
 skipWhile f s = runFn3 call1Eff "skipWhile" s f
 
-skipWhileEff :: forall e stream s a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream _ s a -> EffKefir e (Stream () s a)
+skipWhileEff :: forall e stream s a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream _ s a -> EffKefir e (stream () s a)
 skipWhileEff f s = runFn3 call1Eff "skipWhile" s (\v -> execute (f v))
 
-skipDuplicatesWith :: forall stream s a. (StreamLike stream) => (a -> a -> Boolean) -> stream _ s a -> EffKefir _ (Stream () s a)
+skipDuplicatesWith :: forall stream s a. (StreamLike stream) => (a -> a -> Boolean) -> stream _ s a -> EffKefir _ (stream () s a)
 skipDuplicatesWith f s = runFn3 call1Eff "skipDuplicates" s (mkFn2 f)
 
-skipDuplicates :: forall stream s a. (StreamLike stream, Eq a) => stream _ s a -> EffKefir _ (Stream () s a)
+skipDuplicates :: forall stream s a. (StreamLike stream, Eq a) => stream _ s a -> EffKefir _ (stream () s a)
 skipDuplicates = skipDuplicatesWith (==)
 
-diff1 :: forall stream s a b. (StreamLike stream) => (a -> a -> b) -> stream _ s a -> EffKefir _ (Stream () s b)
+diff1 :: forall stream s a b. (StreamLike stream) => (a -> a -> b) -> stream _ s a -> EffKefir _ (stream () s b)
 diff1 f s = runFn3 call1Eff "diff" s (mkFn2 f)
 
-diff :: forall stream s a b. (StreamLike stream) => (a -> a -> b) -> a -> stream _ s a -> EffKefir _ (Stream () s b)
+diff :: forall stream s a b. (StreamLike stream) => (a -> a -> b) -> a -> stream _ s a -> EffKefir _ (stream () s b)
 diff f a s = runFn4 call2Eff "diff" s (mkFn2 f) a
 
-scan1 :: forall stream s a. (StreamLike stream) => (a -> a -> a) -> stream _ s a -> EffKefir _ (Stream () s a)
+scan1 :: forall stream s a. (StreamLike stream) => (a -> a -> a) -> stream _ s a -> EffKefir _ (Property () s a)
 scan1 f s = runFn3 call1Eff "scan" s (mkFn2 f)
 
-scan :: forall stream s a b. (StreamLike stream) => (b -> a -> b) -> b -> stream _ s a -> EffKefir _ (Stream () s b)
+scan :: forall stream s a b. (StreamLike stream) => (b -> a -> b) -> b -> stream _ s a -> EffKefir _ (Property () s b)
 scan f a s = runFn4 call2Eff "scan" s (mkFn2 f) a
 
-reduce1 :: forall stream s a. (StreamLike stream) => (a -> a -> a) -> stream _ (HasT s) a -> EffKefir _ (Stream () (HasT s) a)
+reduce1 :: forall stream s a. (StreamLike stream) => (a -> a -> a) -> stream _ (HasT s) a -> EffKefir _ (stream () (HasT s) a)
 reduce1 f s = runFn3 call1Eff "reduce" s (mkFn2 f)
 
-reduce :: forall stream s a b. (StreamLike stream) => (b -> a -> b) -> b -> stream _ (HasT s) a -> EffKefir _ (Stream () (HasT s) b)
+reduce :: forall stream s a b. (StreamLike stream) => (b -> a -> b) -> b -> stream _ (HasT s) a -> EffKefir _ (stream () (HasT s) b)
 reduce f a s = runFn4 call2Eff "reduce" s (mkFn2 f) a
 
-reduceEff1 :: forall e stream s a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream _ (HasT s) a -> EffKefir e (Stream () (HasT s) a)
+reduceEff1 :: forall e stream s a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream _ (HasT s) a -> EffKefir e (stream () (HasT s) a)
 reduceEff1 f s = runFn3 call1Eff "reduce" s (mkFn2 (\a b -> execute (f a b)))
 
-reduceEff :: forall e stream s a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream _ (HasT s) a -> EffKefir e (Stream () (HasT s) b)
+reduceEff :: forall e stream s a b. (StreamLike stream) => (b -> a -> EffKefir e b) -> b -> stream _ (HasT s) a -> EffKefir e (stream () (HasT s) b)
 reduceEff f a s = runFn4 call2Eff "reduce" s (mkFn2 (\a b -> execute (f a b))) a
 
-mapEnd :: forall e stream s a. EffKefir e a -> stream _ (HasT s) a -> EffKefir e (Stream () OT a)
+mapEnd :: forall e stream s a. EffKefir e a -> stream _ (HasT s) a -> EffKefir e (stream () OT a)
 mapEnd f s = runFn3 call1Eff "mapEnd" s (wrap f)
 
-skipEnd :: forall stream s a. stream _ (HasT s) a -> EffKefir _ (Stream () s a)
+skipEnd :: forall stream s a. stream _ (HasT s) a -> EffKefir _ (stream () s a)
 skipEnd = runFn2 call0Eff "skipEnd"
 
 type Min = Number
 type Max = Number
-slidingWindow :: forall stream s a. Min -> Max -> stream _ s a -> EffKefir _ (Stream () s [a])
+slidingWindow :: forall stream s a. Min -> Max -> stream _ s a -> EffKefir _ (stream () s [a])
 slidingWindow min max s = runFn4 call2Eff "slidingWindow" s max min
 
-bufferWhileWith :: forall stream s a. {flushOnEnd :: Boolean} -> (a -> Boolean) -> stream _ s a -> EffKefir _ (Stream () s [a])
+bufferWhileWith :: forall stream s a. {flushOnEnd :: Boolean} -> (a -> Boolean) -> stream _ s a -> EffKefir _ (stream () s [a])
 bufferWhileWith opts f s = runFn4 call2Eff "bufferWhile" s f opts
 
-bufferWhile :: forall stream s a. (a -> Boolean) -> stream _ s a -> EffKefir _ (Stream () s [a])
+bufferWhile :: forall stream s a. (a -> Boolean) -> stream _ s a -> EffKefir _ (stream () s [a])
 bufferWhile f s = runFn3 call1Eff "bufferWhile" s f
 
-delay :: forall stream s a. Number -> stream _ s a -> EffKefir _ (Stream () s a)
+delay :: forall stream s a. Number -> stream _ s a -> EffKefir _ (stream () s a)
 delay w s = runFn3 call1Eff "delay" s w
 
-throttleWith :: forall stream s a. {leading :: Boolean, trailing :: Boolean} -> Number -> stream _ s a -> EffKefir _ (Stream () s a)
+throttleWith :: forall stream s a. {leading :: Boolean, trailing :: Boolean} -> Number -> stream _ s a -> EffKefir _ (stream () s a)
 throttleWith opts w s = runFn4 call2Eff "throttle" s w opts
 
-throttle :: forall stream s a. Number -> stream _ s a -> EffKefir _ (Stream () s a)
+throttle :: forall stream s a. Number -> stream _ s a -> EffKefir _ (stream () s a)
 throttle w s = runFn3 call1Eff "throttle" s w
 
-debounceWith :: forall stream s a. {immediate :: Boolean} -> Number -> stream _ s a -> EffKefir _ (Stream () s a)
+debounceWith :: forall stream s a. {immediate :: Boolean} -> Number -> stream _ s a -> EffKefir _ (stream () s a)
 debounceWith opts w s = runFn4 call2Eff "debounce" s w opts
 
-debounce :: forall stream s a. Number -> stream _ s a -> EffKefir _ (Stream () s a)
+debounce :: forall stream s a. Number -> stream _ s a -> EffKefir _ (stream () s a)
 debounce w s = runFn3 call1Eff "debounce" s w
 
-flatten :: forall stream s a. stream _ s [a] -> EffKefir _ (Stream () s a)
+flatten :: forall stream s a. stream _ s [a] -> EffKefir _ (stream () s a)
 flatten = runFn2 call0Eff "flatten"
 
-flattenWith :: forall stream s a b. (a -> [b]) -> stream _ s a -> EffKefir _ (Stream () s b)
+flattenWith :: forall stream s a b. (a -> [b]) -> stream _ s a -> EffKefir _ (stream () s b)
 flattenWith f s = runFn3 call1Eff "flatten" s f
 
 foreign import withHandlerImpl """
@@ -405,9 +405,9 @@ function withHandlerImpl(cnsts, src, fun){
   {value :: Fn2 Boolean a (Event a), end :: Event a}
   (stream p s a)
   (Fn2 (Stream E () b) (Event a) (EffKefir e c))
-  (EffKefir e (Stream () s' b))
+  (EffKefir e (stream () s' b))
 
-withHandler :: forall e stream a b. (StreamLike stream) => stream _ _ a -> (Stream E () b -> Event a -> EffKefir e _) -> EffKefir e (Stream () OT b)
+withHandler :: forall e stream a b. (StreamLike stream) => stream _ _ a -> (Stream E () b -> Event a -> EffKefir e _) -> EffKefir e (stream () OT b)
 withHandler s f = runFn3 withHandlerImpl {value: mkFn2 Value, end: End} s (mkFn2 f)
 
 -- Combine
@@ -480,26 +480,26 @@ flatMapConcurLimitWith :: forall e stream child a b. (StreamLike stream, StreamL
 flatMapConcurLimitWith l s f = runFn4 call2Eff "flatMapConcurLimit" s (execute <<< f) l
 
 -- combine two observables
-filterBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (Stream () s a)
+filterBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (stream () s a)
 filterBy v f = runFn3 call1Eff "filterBy" v f
 
-takeWhileBy :: forall stream filter a. (StreamLike stream, StreamLike filter) => stream _ _ a -> filter _ _ Boolean -> EffKefir _ (Stream () OT a)
+takeWhileBy :: forall stream filter a. (StreamLike stream, StreamLike filter) => stream _ _ a -> filter _ _ Boolean -> EffKefir _ (stream () OT a)
 takeWhileBy v f = runFn3 call1Eff "takeWhileBy" v f
 
-skipWhileBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (Stream () s a)
+skipWhileBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (stream () s a)
 skipWhileBy v f = runFn3 call1Eff "skipWhileBy" v f
 
-skipUntilBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ _ -> EffKefir _ (Stream () s a)
+skipUntilBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ _ -> EffKefir _ (stream () s a)
 skipUntilBy v f = runFn3 call1Eff "skipUntilBy" v f
 
-takeUntilBy :: forall stream filter a. (StreamLike stream, StreamLike filter) => stream _ _ a -> filter _ _ _ -> EffKefir _ (Stream () OT a)
+takeUntilBy :: forall stream filter a. (StreamLike stream, StreamLike filter) => stream _ _ a -> filter _ _ _ -> EffKefir _ (stream () OT a)
 takeUntilBy v f = runFn3 call1Eff "takeUntilBy" v f
 
-bufferBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ _ -> EffKefir _ (Stream () s [a])
+bufferBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ _ -> EffKefir _ (stream () s [a])
 bufferBy v f = runFn3 call1Eff "bufferBy" v f
 
-bufferWhileBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (Stream () s [a])
+bufferWhileBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (stream () s [a])
 bufferWhileBy v f = runFn3 call1Eff "bufferWhileBy" v f
 
-awaiting :: forall on off s. (StreamLike on, StreamLike off) => on _ s _ -> off _ s _ -> EffKefir _ (Stream () s Boolean)
+awaiting :: forall on off s. (StreamLike on, StreamLike off) => on _ s _ -> off _ s _ -> EffKefir _ (Property () s Boolean)
 awaiting v f = runFn3 call1Eff "awaiting" v f
