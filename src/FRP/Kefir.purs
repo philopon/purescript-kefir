@@ -68,6 +68,8 @@ module FRP.Kefir
   , bufferBy
   , bufferWhileBy
   , awaiting
+
+  , unsafeGlobalize
   ) where
 
 import Control.Monad.Eff
@@ -154,6 +156,9 @@ forget = forgetImpl
 
 unsafeForget :: forall stream. (StreamLike stream) => stream _ _ -> Stream _ _
 unsafeForget = forgetImpl
+
+unsafeGlobalize :: forall stream s a. (StreamLike stream) => EffKefir _ (stream s a) -> stream s a
+unsafeGlobalize = execute
 
 -- Emitter
 emitter :: EffKefir _ (Stream EOT _)

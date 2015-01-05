@@ -223,6 +223,8 @@
 
     unPlug :: forall stream a. (StreamLike stream) => Stream (HasP _) a -> stream _ a -> EffKefir _ Unit
 
+    unsafeGlobalize :: forall stream s a. (StreamLike stream) => EffKefir _ (stream s a) -> stream s a
+
     withDefault :: forall stream s a. (StreamLike stream) => a -> stream s a -> EffKefir _ (Property s a)
 
     withHandler :: forall e stream s a b. (StreamLike stream) => stream s a -> (Stream E b -> Event a -> EffKefir e _) -> EffKefir e (Stream OT b)
