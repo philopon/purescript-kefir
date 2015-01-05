@@ -59,6 +59,15 @@ module FRP.Kefir
   , flatMap, flatMapLatest, flatMapFirst, flatMapConcat
   , flatMapWith, flatMapLatestWith, flatMapFirstWith, flatMapConcatWith
   , flatMapConcurLimit, flatMapConcurLimitWith
+
+  , filterBy
+  , takeWhileBy
+  , skipWhileBy
+  , skipUntilBy
+  , takeUntilBy
+  , bufferBy
+  , bufferWhileBy
+  , awaiting
   ) where
 
 import Control.Monad.Eff
@@ -543,3 +552,28 @@ flatMapConcurLimit l s = runFn4 call2Eff "flatMapConcurLimit" s undefined l
 
 flatMapConcurLimitWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => Number -> stream a -> (a -> EffKefir e (child b)) -> EffKefir e (Stream b)
 flatMapConcurLimitWith l s f = runFn4 call2Eff "flatMapConcurLimit" s (execute <<< f) l
+
+-- combine two observables
+filterBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream a)
+filterBy v f = runFn3 call1Eff "filterBy" v f
+
+takeWhileBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream a)
+takeWhileBy v f = runFn3 call1Eff "takeWhileBy" v f
+
+skipWhileBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream a)
+skipWhileBy v f = runFn3 call1Eff "skipWhileBy" v f
+
+skipUntilBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter _ -> EffKefir e (Stream a)
+skipUntilBy v f = runFn3 call1Eff "skipUntilBy" v f
+
+takeUntilBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter _ -> EffKefir e (Stream a)
+takeUntilBy v f = runFn3 call1Eff "takeUntilBy" v f
+
+bufferBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter _ -> EffKefir e (Stream [a])
+bufferBy v f = runFn3 call1Eff "bufferBy" v f
+
+bufferWhileBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream [a])
+bufferWhileBy v f = runFn3 call1Eff "bufferWhileBy" v f
+
+awaiting :: forall e on off. (StreamLike on, StreamLike off) => on _ -> off _ -> EffKefir e (Stream Boolean)
+awaiting v f = runFn3 call1Eff "awaiting" v f

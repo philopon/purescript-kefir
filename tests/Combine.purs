@@ -6,6 +6,8 @@ import Test.Assert.Simple
 import Test.PSpec hiding (skip)
 import Test.PSpec.Mocha
 
+import Data.Array(range)
+
 import FRP.Kefir
 
 main = runMocha test
@@ -327,4 +329,108 @@ test = do
       onEnd fm $ do
         v <- readRef ref
         v @?= [3,3,3,3,2,3,2,3,2,1,2,1,2,1,2,1,1,1]
+        itIs done
+
+  describe "filterBy" $
+    itAsync "should filter by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 8)
+      bar <- sequentially 50 [false, true, false] >>= delay 10 >>= toPropertyWith true
+      res <- filterBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [6,5,2,1]
+        itIs done
+
+  describe "takeWhileBy" $
+    itAsync "should take while by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 8)
+      bar <- sequentially 50 [true,false,true] >>= delay 10 >>= toPropertyWith true
+      res <- takeWhileBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [4,3,2,1]
+        itIs done
+
+  describe "skipWhileBy" $
+    itAsync "should take while by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 8)
+      bar <- sequentially 50 [true,false,true] >>= delay 10
+      res <- skipWhileBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [8,7,6,5]
+        itIs done
+
+  describe "skipUntilBy" $
+    itAsync "should skip until by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 4)
+      bar <- later 62.5 "bar"
+      res <- skipUntilBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [4,3]
+        itIs done
+
+  describe "takeUntilBy" $
+    itAsync "should take until by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 4)
+      bar <- later 62.5 "bar"
+      res <- takeUntilBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [2,1]
+        itIs done
+
+  describe "bufferBy" $
+    itAsync "should buffer by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 8)
+      bar <- sequentially 75 [1,2]
+      res <- bufferBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [[6,7,8], [3,4,5], [1,2]]
+        itIs done
+
+  describe "bufferWhileBy" $
+    itAsync "should buffer by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 8)
+      bar <- sequentially 50 [false,true,false] >>= delay 10
+      res <- bufferWhileBy foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [[8], [5,6,7], [4], [1,2,3]]
+        itIs done
+
+  describe "awaiting" $
+    itAsync "should awaiting by 2nd argument property" $ \done -> do
+      foo <- sequentially 25 (range 1 3)
+      bar <- delay 30 foo
+      res <- awaiting foo bar
+
+      ref <- newRef []
+      onValue res $ modifyRef ref <<< (:)
+      onEnd res $ do
+        v <- readRef ref
+        v @?= [false,true,false,true,false]
         itIs done

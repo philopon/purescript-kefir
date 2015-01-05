@@ -199,7 +199,13 @@
 
     and :: forall stream e. (StreamLike stream) => [stream Boolean] -> EffKefir e (Stream Boolean)
 
+    awaiting :: forall e on off. (StreamLike on, StreamLike off) => on _ -> off _ -> EffKefir e (Stream Boolean)
+
+    bufferBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter _ -> EffKefir e (Stream [a])
+
     bufferWhile :: forall e stream a. (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
+
+    bufferWhileBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream [a])
 
     bufferWhileWith :: forall e stream a. { flushOnEnd :: Boolean } -> (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
 
@@ -230,6 +236,8 @@
     end :: forall e stream. (Emittable stream) => stream _ -> EffKefir e Unit
 
     filter :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    filterBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream a)
 
     filterEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 
@@ -321,7 +329,11 @@
 
     skipEnd :: forall e stream a. stream a -> EffKefir e (SkipEnd a)
 
+    skipUntilBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter _ -> EffKefir e (Stream a)
+
     skipWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    skipWhileBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream a)
 
     skipWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 
@@ -329,7 +341,11 @@
 
     take :: forall e stream a. (StreamLike stream) => Number -> stream a -> EffKefir e (Stream a)
 
+    takeUntilBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter _ -> EffKefir e (Stream a)
+
     takeWhile :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
+
+    takeWhileBy :: forall e stream filter a. (StreamLike stream, StreamLike filter) => stream a -> filter Boolean -> EffKefir e (Stream a)
 
     takeWhileEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 
