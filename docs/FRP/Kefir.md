@@ -4,6 +4,8 @@
 
 ### Types
 
+    newtype Bus a
+
     newtype Constant a
 
     type EffKefir e = Eff (kefir :: Kefir | e)
@@ -32,6 +34,8 @@
 
     newtype Never a
 
+    newtype Pool a
+
     data Property :: * -> *
 
     newtype Repeatedly a
@@ -49,11 +53,15 @@
 
 ### Type Classes
 
+    class (StreamLike stream) <= Emittable stream where
+
     class (StreamLike stream) <= IsProperty stream where
 
     class (StreamLike stream) <= IsStream stream where
 
     class (StreamLike stream) <= Observable stream where
+
+    class (StreamLike stream) <= Pluggable stream where
 
     class StreamLike (stream :: * -> *) where
 
@@ -62,9 +70,15 @@
 
 ### Type Class Instances
 
+    instance emittableBus :: Emittable Bus
+
+    instance emittableEmitter :: Emittable Emitter
+
     instance isPropertyConstant :: IsProperty Constant
 
     instance isPropertyProperty :: IsProperty Property
+
+    instance isStreamBus :: IsStream Bus
 
     instance isStreamEmitter :: IsStream Emitter
 
@@ -80,6 +94,8 @@
 
     instance isStreamNever :: IsStream Never
 
+    instance isStreamPool :: IsStream Pool
+
     instance isStreamRepeatedly :: IsStream Repeatedly
 
     instance isStreamSequentially :: IsStream Sequentially
@@ -89,6 +105,8 @@
     instance isStreamStream :: IsStream Stream
 
     instance isStreamWithInterval :: IsStream WithInterval
+
+    instance observableBus :: Observable Bus
 
     instance observableConstant :: Observable Constant
 
@@ -104,6 +122,8 @@
 
     instance observableLater :: Observable Later
 
+    instance observablePool :: Observable Pool
+
     instance observableProperty :: Observable Property
 
     instance observableRepeatedly :: Observable Repeatedly
@@ -115,6 +135,12 @@
     instance observableStream :: Observable Stream
 
     instance observableWithInterval :: Observable WithInterval
+
+    instance pluggableBus :: Pluggable Bus
+
+    instance pluggablePool :: Pluggable Pool
+
+    instance streamLikeBus :: StreamLike Bus
 
     instance streamLikeConstant :: StreamLike Constant
 
@@ -132,6 +158,8 @@
 
     instance streamLikeNever :: StreamLike Never
 
+    instance streamLikePool :: StreamLike Pool
+
     instance streamLikeProperty :: StreamLike Property
 
     instance streamLikeRepeatedly :: StreamLike Repeatedly
@@ -143,6 +171,8 @@
     instance streamLikeStream :: StreamLike Stream
 
     instance streamLikeWithInterval :: StreamLike WithInterval
+
+    instance terminableBus :: Terminable Bus
 
     instance terminableConstant :: Terminable Constant
 
@@ -167,11 +197,19 @@
 
 ### Values
 
+    and :: forall stream e. (StreamLike stream) => [stream Boolean] -> EffKefir e (Stream Boolean)
+
     bufferWhile :: forall e stream a. (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
 
     bufferWhileWith :: forall e stream a. { flushOnEnd :: Boolean } -> (a -> Boolean) -> stream a -> EffKefir e (Stream [a])
 
+    bus :: forall e a. EffKefir e (Bus a)
+
     changes :: forall e stream a. (IsProperty stream) => stream a -> EffKefir e (Stream a)
+
+    combine :: forall e streamA streamB a b x. (StreamLike streamA, StreamLike streamB) => streamA a -> streamB b -> (a -> b -> x) -> EffKefir e (Stream x)
+
+    concat :: forall stream e a. (StreamLike stream) => [stream a] -> EffKefir e (Stream a)
 
     constant :: forall e a. a -> EffKefir e (Constant a)
 
@@ -185,19 +223,41 @@
 
     diff1 :: forall e stream a b. (StreamLike stream) => (a -> a -> b) -> stream a -> EffKefir e (Stream b)
 
-    emit :: forall e a. Emitter a -> a -> EffKefir e Unit
+    emit :: forall e stream a. (Emittable stream) => stream a -> a -> EffKefir e Unit
 
     emitter :: forall e a. EffKefir e (Emitter a)
 
-    end :: forall e a. Emitter a -> EffKefir e Unit
+    end :: forall e stream. (Emittable stream) => stream _ -> EffKefir e Unit
 
     filter :: forall e stream a. (StreamLike stream) => (a -> Boolean) -> stream a -> EffKefir e (Stream a)
 
     filterEff :: forall e stream a. (StreamLike stream) => (a -> EffKefir e Boolean) -> stream a -> EffKefir e (Stream a)
 
+    flatMap :: forall e stream child a. (StreamLike stream, StreamLike child) => stream (child a) -> EffKefir e (Stream a)
+
+    flatMapConcat :: forall e stream child a. (StreamLike stream, StreamLike child) => stream (child a) -> EffKefir e (Stream a)
+
+    flatMapConcatWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream a -> (a -> EffKefir e (child b)) -> EffKefir e (Stream b)
+
+    flatMapConcurLimit :: forall e stream child a. (StreamLike stream, StreamLike child) => Number -> stream (child a) -> EffKefir e (Stream a)
+
+    flatMapConcurLimitWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => Number -> stream a -> (a -> EffKefir e (child b)) -> EffKefir e (Stream b)
+
+    flatMapFirst :: forall e stream child a. (StreamLike stream, StreamLike child) => stream (child a) -> EffKefir e (Stream a)
+
+    flatMapFirstWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream a -> (a -> EffKefir e (child b)) -> EffKefir e (Stream b)
+
+    flatMapLatest :: forall e stream child a. (StreamLike stream, StreamLike child) => stream (child a) -> EffKefir e (Stream a)
+
+    flatMapLatestWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream a -> (a -> EffKefir e (child b)) -> EffKefir e (Stream b)
+
+    flatMapWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream a -> (a -> EffKefir e (child b)) -> EffKefir e (Stream b)
+
     flatten :: forall e stream a. stream [a] -> EffKefir e (Stream a)
 
     flattenWith :: forall e stream a b. (a -> [b]) -> stream a -> EffKefir e (Stream b)
+
+    forget :: forall stream a. (StreamLike stream) => stream a -> Stream a
 
     fromBinder :: forall e a. (Emitter a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (FromBinder a)
 
@@ -215,6 +275,8 @@
 
     mapEnd :: forall e stream a. EffKefir e a -> stream a -> EffKefir e (Stream a)
 
+    merge :: forall stream e a. (StreamLike stream) => [stream a] -> EffKefir e (Stream a)
+
     never :: forall e a. EffKefir e (Never a)
 
     offLog :: forall e stream. (StreamLike stream) => stream _ -> EffKefir e Unit
@@ -227,6 +289,12 @@
 
     onValue :: forall e stream a. (Observable stream) => stream a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
 
+    or :: forall stream e. (StreamLike stream) => [stream Boolean] -> EffKefir e (Stream Boolean)
+
+    plug :: forall e hub stream a. (Pluggable hub, StreamLike stream) => hub a -> stream a -> EffKefir e Unit
+
+    pool :: forall e a. EffKefir e (Pool a)
+
     reduce :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
 
     reduce1 :: forall e stream a. (StreamLike stream) => (a -> a -> a) -> stream a -> EffKefir e (Stream a)
@@ -236,6 +304,8 @@
     reduceEff1 :: forall e stream a. (StreamLike stream) => (a -> a -> EffKefir e a) -> stream a -> EffKefir e (Stream a)
 
     repeatedly :: forall e a. Number -> [a] -> EffKefir e (Repeatedly a)
+
+    sampledBy :: forall e passive active a b x. (StreamLike passive, StreamLike active) => passive a -> active b -> (a -> b -> x) -> EffKefir e (Stream x)
 
     scan :: forall e stream a b. (StreamLike stream) => (b -> a -> b) -> b -> stream a -> EffKefir e (Stream b)
 
@@ -271,11 +341,15 @@
 
     toPropertyWith :: forall e stream a. (IsStream stream) => a -> stream a -> EffKefir e (Property a)
 
+    unPlug :: forall e hub stream a. (Pluggable hub, StreamLike stream) => hub a -> stream a -> EffKefir e Unit
+
     withDefault :: forall e stream a. (StreamLike stream) => a -> stream a -> EffKefir e (Property a)
 
     withHandler :: forall e stream a b. (StreamLike stream) => stream a -> (Emitter b -> Event a -> EffKefir e _) -> EffKefir e (Stream b)
 
     withInterval :: forall e a. Number -> (Emitter a -> EffKefir e Unit) -> EffKefir e (WithInterval a)
+
+    zipWith :: forall e streamA streamB a b x. (StreamLike streamA, StreamLike streamB) => (a -> b -> x) -> streamA a -> streamB b -> EffKefir e (Stream x)
 
 
 
