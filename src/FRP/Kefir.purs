@@ -481,16 +481,16 @@ flatMapConcat :: forall stream child a. (StreamLike stream, StreamLike child) =>
 flatMapConcat = runFn2 call0Eff "flatMapConcat"
 
 flatMapWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapWith s f = runFn3 call1Eff "flatMap" s (execute <<< f)
+flatMapWith s f = runFn3 call1Eff "flatMap" s (\a -> execute $ f a)
 
 flatMapLatestWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapLatestWith s f = runFn3 call1Eff "flatMapLatest" s (execute <<< f)
+flatMapLatestWith s f = runFn3 call1Eff "flatMapLatest" s (\a -> execute $ f a)
 
 flatMapFirstWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapFirstWith s f = runFn3 call1Eff "flatMapFirst" s (execute <<< f)
+flatMapFirstWith s f = runFn3 call1Eff "flatMapFirst" s (\a -> execute $ f a)
 
 flatMapConcatWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapConcatWith s f = runFn3 call1Eff "flatMapConcat" s (execute <<< f)
+flatMapConcatWith s f = runFn3 call1Eff "flatMapConcat" s (\a -> execute $ f a)
 
 foreign import undefined "var undefined = undefined;" :: forall a. a
 
@@ -498,7 +498,7 @@ flatMapConcurLimit :: forall stream child a. (StreamLike stream, StreamLike chil
 flatMapConcurLimit l s = runFn4 call2Eff "flatMapConcurLimit" s undefined l
 
 flatMapConcurLimitWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => Number -> stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapConcurLimitWith l s f = runFn4 call2Eff "flatMapConcurLimit" s (execute <<< f) l
+flatMapConcurLimitWith l s f = runFn4 call2Eff "flatMapConcurLimit" s (\a -> execute $ f a) l
 
 -- combine two observables
 filterBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (stream () s a)
