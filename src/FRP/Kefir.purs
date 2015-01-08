@@ -9,6 +9,7 @@ module FRP.Kefir
   , onEnd
   , onValue
   , emit, end
+  , emitAsync, endAsync
   , plug, unPlug
   , forget
 
@@ -111,6 +112,20 @@ foreign import call3Eff """
     }
   }""" :: forall e o a b c r. Fn5 String o a b c (Eff e r)
 
+foreign import call0EffAsync """
+  function call0EffAsync(f, obj) {
+    return function(){
+      return setTimeout(function(){obj[f]()}, 0);
+    }
+  }""" :: forall e o. Fn2 String o (Eff e Unit)
+
+foreign import call1EffAsync """
+  function call1EffAsync(f, obj, a) {
+    return function(){
+      return setTimeout(function(){obj[f](a)}, 0);
+    }
+  }""" :: forall e o a. Fn3 String o a (Eff e Unit)
+
 foreign import execute """
   function execute(m){
     return m();
@@ -172,6 +187,12 @@ emit = runFn3 call1Eff "emit"
 
 end :: Stream (HasE _) _ _ -> EffKefir _ Unit
 end = runFn2 call0Eff "end"
+
+emitAsync :: forall a. Stream (HasE _) _ a -> a -> EffKefir _ Unit
+emitAsync = runFn3 call1EffAsync "emit"
+
+endAsync :: Stream (HasE _) _ _ -> EffKefir _ Unit
+endAsync = runFn2 call0EffAsync "end"
 
 -- never
 never :: EffKefir _ (Stream () T _)
@@ -460,16 +481,16 @@ flatMapConcat :: forall stream child a. (StreamLike stream, StreamLike child) =>
 flatMapConcat = runFn2 call0Eff "flatMapConcat"
 
 flatMapWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapWith s f = runFn3 call1Eff "flatMap" s (execute <<< f)
+flatMapWith s f = runFn3 call1Eff "flatMap" s (\a -> execute $ f a)
 
 flatMapLatestWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapLatestWith s f = runFn3 call1Eff "flatMapLatest" s (execute <<< f)
+flatMapLatestWith s f = runFn3 call1Eff "flatMapLatest" s (\a -> execute $ f a)
 
 flatMapFirstWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapFirstWith s f = runFn3 call1Eff "flatMapFirst" s (execute <<< f)
+flatMapFirstWith s f = runFn3 call1Eff "flatMapFirst" s (\a -> execute $ f a)
 
 flatMapConcatWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapConcatWith s f = runFn3 call1Eff "flatMapConcat" s (execute <<< f)
+flatMapConcatWith s f = runFn3 call1Eff "flatMapConcat" s (\a -> execute $ f a)
 
 foreign import undefined "var undefined = undefined;" :: forall a. a
 
@@ -477,7 +498,7 @@ flatMapConcurLimit :: forall stream child a. (StreamLike stream, StreamLike chil
 flatMapConcurLimit l s = runFn4 call2Eff "flatMapConcurLimit" s undefined l
 
 flatMapConcurLimitWith :: forall e stream child a b. (StreamLike stream, StreamLike child) => Number -> stream _ _ a -> (a -> EffKefir e (child _ _ b)) -> EffKefir e (Stream () OT b)
-flatMapConcurLimitWith l s f = runFn4 call2Eff "flatMapConcurLimit" s (execute <<< f) l
+flatMapConcurLimitWith l s f = runFn4 call2Eff "flatMapConcurLimit" s (\a -> execute $ f a) l
 
 -- combine two observables
 filterBy :: forall stream filter s a. (StreamLike stream, StreamLike filter) => stream _ s a -> filter _ _ Boolean -> EffKefir _ (stream () s a)
