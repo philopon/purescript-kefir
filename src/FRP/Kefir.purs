@@ -9,6 +9,7 @@ module FRP.Kefir
   , onEnd
   , onValue
   , emit, end
+  , emitAsync, endAsync
   , plug, unPlug
   , forget
 
@@ -111,6 +112,20 @@ foreign import call3Eff """
     }
   }""" :: forall e o a b c r. Fn5 String o a b c (Eff e r)
 
+foreign import call0EffAsync """
+  function call0EffAsync(f, obj) {
+    return function(){
+      return setTimeout(function(){obj[f]()}, 0);
+    }
+  }""" :: forall e o. Fn2 String o (Eff e Unit)
+
+foreign import call1EffAsync """
+  function call1EffAsync(f, obj, a) {
+    return function(){
+      return setTimeout(function(){obj[f](a)}, 0);
+    }
+  }""" :: forall e o a. Fn3 String o a (Eff e Unit)
+
 foreign import execute """
   function execute(m){
     return m();
@@ -172,6 +187,12 @@ emit = runFn3 call1Eff "emit"
 
 end :: Stream (HasE _) _ _ -> EffKefir _ Unit
 end = runFn2 call0Eff "end"
+
+emitAsync :: forall a. Stream (HasE _) _ a -> a -> EffKefir _ Unit
+emitAsync = runFn3 call1EffAsync "emit"
+
+endAsync :: Stream (HasE _) _ _ -> EffKefir _ Unit
+endAsync = runFn2 call0EffAsync "end"
 
 -- never
 never :: EffKefir _ (Stream () T _)

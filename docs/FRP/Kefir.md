@@ -99,9 +99,13 @@
 
     emit :: forall a. Stream (HasE _) _ a -> a -> EffKefir _ Unit
 
+    emitAsync :: forall a. Stream (HasE _) _ a -> a -> EffKefir _ Unit
+
     emitter :: EffKefir _ (Stream E OT _)
 
     end :: Stream (HasE _) _ _ -> EffKefir _ Unit
+
+    endAsync :: Stream (HasE _) _ _ -> EffKefir _ Unit
 
     filter :: forall stream s a. (StreamLike stream) => (a -> Boolean) -> stream _ s a -> EffKefir _ (stream () s a)
 

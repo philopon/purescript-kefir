@@ -24,14 +24,14 @@ test = do
           itIs done
 
         onEnd e $ itIsNot done "end"
-        emit e "foo"
+        emitAsync e "foo"
 
       itAsync "should take end" $ \done -> do
         e <- emitter
         onValue e $ \_ -> do
           itIsNot done "value"
         onEnd e $ itIs done
-        end e
+        endAsync e
 
     describe "never" $
       itAsync "should send end" $ \done -> do
