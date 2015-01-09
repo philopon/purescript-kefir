@@ -8,6 +8,7 @@ import Data.Foldable(sum)
 import Data.Traversable(for)
 import Data.Array(range)
 import Data.Foreign.Class(readJSON)
+import Data.Maybe
 
 import Test.Common
 import Test.Assert.Simple
@@ -31,7 +32,7 @@ test = do
         emit e "emit"
         end e
 
-    describe "toPropertyWith" $
+    describe "toPropertyWith" $ do
       itAsync "should send current and original." $ \done -> do
         e <- emitter
         p <- toPropertyWith "foo" e
@@ -46,33 +47,10 @@ test = do
         emit e "bar"
         end e
 
-    describe "changes" $
-      itAsync "should be same to original." $ \done -> do
-        c <- constant "foo"
-        s <- changes c
-
-        onValue s $ \v -> v @?= "foo"
-        onEnd s $ itIs done
-
-    describe "withDefault" $ do
-      itAsync "should add default to stream" $ \done -> do
-        e <- emitter
-        w <- withDefault "foo" e
-
-        r <- newRef ""
-        onValue w $ \v -> modifyRef r (\a -> a ++ v)
-        onEnd w $ do
-          v <- readRef r
-          v @?= "foobar"
-          itIs done
-
-        emit e "bar"
-        end e
-
       itAsync "should add default to property missing current value" $ \done -> do
         e <- emitter
         p <- toProperty e
-        w <- withDefault "foo" p
+        w <- toPropertyWith "foo" p
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)
@@ -87,7 +65,7 @@ test = do
       itAsync "should be id when property has current value" $ \done -> do
         e <- emitter
         p <- toPropertyWith "foo" e
-        w <- withDefault "xxx" p
+        w <- toPropertyWith "xxx" p
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)
@@ -98,6 +76,14 @@ test = do
 
         emit e "bar"
         end e
+
+    describe "changes" $
+      itAsync "should be same to original." $ \done -> do
+        c <- constant "foo"
+        s <- changes c
+
+        onValue s $ \v -> v @?= "foo"
+        onEnd s $ itIs done
 
   describe "modify an observable" $ do
     describe "map" $
@@ -142,6 +128,51 @@ test = do
         end e
         emit e 65
 
+    describe "mapErrors" $
+      itAsync "should mapping error value" $ \done -> do
+        e <- emitter
+        f <- mapErrors show e
+
+        r <- newRef ""
+
+        onError f $ modifyRef r <<< flip (++)
+
+        onEnd f $ do
+          v <- readRef r
+          v @?= "1234567890"
+          itIs done
+
+        error e 123
+        emit  e "XXX"
+        error e 456
+        error e 789
+        error e 0
+        end e
+
+    describe "mapErrorsEff" $
+      itAsync "should mapping errors value with side effect" $ \done -> do
+        e <- emitter
+
+        re <- newRef 0
+        f  <- mapErrorsEff (\v -> modifyRef re ((+) v) >>= \_ -> return v) e
+
+        rf <- newRef 0
+        onError e $ modifyRef rf <<< (+)
+
+        onEnd f $ do
+          ve <- readRef re
+          vf <- readRef rf
+
+          ve @?= vf
+          itIs done
+        
+        error e 52
+        emitAsync e 35
+        error e 146
+        emit e (-1)
+        end e
+        error e 65
+
     describe "filter" $
       itAsync "should take even only" $ \done -> do
         e <- emitter
@@ -168,6 +199,37 @@ test = do
           itIs done
 
         for ary (emit e)
+        end e
+
+    describe "filterErrors" $
+      itAsync "should take even error only" $ \done -> do
+        e <- emitter
+        f <- filter        (\v -> v % 2 == 1) e
+          >>= filterErrors (\v -> v % 2 == 0)
+
+        onValue f $ \v -> v % 2 @?= 1
+        onError f $ \v -> v % 2 @?= 0
+        onEnd   f $ itIs done
+
+        for (range 0 100) (emit  e)
+        for (range 0 100) (error e)
+        end e
+
+    describe "filterErrorsEff" $
+      itAsync "should take even only with side effect" $ \done -> do
+        e <- emitter
+        r <- newRef 0
+        f <- filterErrorsEff (\v -> modifyRef r ((+) v) >>= \_ -> return (v % 2 == 0)) e
+
+        let ary = range 0 100
+
+        onError f $ \v -> v % 2 @?= 0
+        onEnd   f $ do
+          v <- readRef r
+          v @?= sum ary
+          itIs done
+
+        for ary (error e)
         end e
 
     describe "take" $
@@ -508,3 +570,50 @@ test = do
           v <- readRef ref
           v @?= "end3210"
           itIs done
+
+    describe "valuesToErrors" $
+      itAsync "should send even to error" $ \done -> do
+        src <- sequentially 0 (range 0 100)
+          >>= valuesToErrors (\v -> if v % 2 == 0 then Just v else Nothing)
+
+        onValue src $ \v -> v % 2 @?= 1
+        onError src $ \v -> v % 2 @?= 0
+        onEnd src $ itIs done
+
+    describe "errorsToValues" $
+      itAsync "should send even back from error" $ \done -> do
+        src <- sequentially 0 (range 0 100)
+          >>= valuesToErrors Just
+          >>= errorsToValues (\v -> if v % 2 == 0 then Just v else Nothing)
+
+        onValue src $ \v -> v % 2 @?= 0
+        onError src $ \v -> v % 2 @?= 1
+        onEnd src $ itIs done
+
+    describe "skipErrors" $
+      itAsync "should drop all errors" $ \done -> do
+        src <- sequentially 0 (range 0 100)
+          >>= valuesToErrors (\v -> if v % 2 == 0 then Just v else Nothing)
+          >>= skipErrors
+
+        onError (forget src) $ \_ -> itIsNot done "error"
+        onEnd   src $ itIs done
+
+    describe "skipValues" $
+      itAsync "should drop all values" $ \done -> do
+        src <- sequentially 0 (range 0 100)
+          >>= valuesToErrors (\v -> if v % 2 == 0 then Just v else Nothing)
+          >>= skipValues
+
+        onValue (forget src) $ \_ -> itIsNot done "value"
+        onEnd src $ itIs done
+
+    describe "endOnError" $
+      itAsync "should end immediately on error" $ \done -> do
+        src <- sequentially 0 [0,-1,2,-3]
+          >>= valuesToErrors (\v -> if v < 0 then Just v else Nothing)
+          >>= endOnError
+
+        onValue src $ \v -> v @?= 0
+        onError src $ \v -> v @?= (-1)
+        onEnd   src $ itIs done
