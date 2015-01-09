@@ -39,14 +39,14 @@ test = do
         onEnd n $ itIs done
 
     describe "later" $ do
-      itAsync "should emit 1 value and end, 100ms later." $ \done -> do
+      itAsync "should emit 1 value and end, 50ms later." $ \done -> do
         st <- now
         l  <- later 50 "bar"
         onValue l $ \v -> do
           v @?= "bar"
         onEnd l $ do
           ed <- now
-          assertAbout 0.1 50 (toEpochMilliseconds ed - toEpochMilliseconds st)
+          assertAbout 0.2 50 (toEpochMilliseconds ed - toEpochMilliseconds st)
           itIs done
 
     describe "interval" $ do

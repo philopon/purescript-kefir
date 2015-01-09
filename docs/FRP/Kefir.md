@@ -165,7 +165,9 @@
 
     onEnd :: forall e stream. (StreamLike stream) => stream _ (HasT _) _ -> EffKefir e _ -> EffKefir e (Unregister e)
 
-    onLog :: forall stream. (StreamLike stream) => stream _ _ _ -> String -> EffKefir _ Unit
+    onLog :: forall stream. (StreamLike stream) => stream _ _ _ -> EffKefir _ Unit
+
+    onLogWith :: forall stream. (StreamLike stream) => stream _ _ _ -> String -> EffKefir _ Unit
 
     onValue :: forall e stream a. (StreamLike stream) => stream _ (HasO _) a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
 
