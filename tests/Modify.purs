@@ -31,7 +31,7 @@ test = do
         emit e "emit"
         end e
 
-    describe "toPropertyWith" $
+    describe "toPropertyWith" $ do
       itAsync "should send current and original." $ \done -> do
         e <- emitter
         p <- toPropertyWith "foo" e
@@ -46,33 +46,10 @@ test = do
         emit e "bar"
         end e
 
-    describe "changes" $
-      itAsync "should be same to original." $ \done -> do
-        c <- constant "foo"
-        s <- changes c
-
-        onValue s $ \v -> v @?= "foo"
-        onEnd s $ itIs done
-
-    describe "withDefault" $ do
-      itAsync "should add default to stream" $ \done -> do
-        e <- emitter
-        w <- withDefault "foo" e
-
-        r <- newRef ""
-        onValue w $ \v -> modifyRef r (\a -> a ++ v)
-        onEnd w $ do
-          v <- readRef r
-          v @?= "foobar"
-          itIs done
-
-        emit e "bar"
-        end e
-
       itAsync "should add default to property missing current value" $ \done -> do
         e <- emitter
         p <- toProperty e
-        w <- withDefault "foo" p
+        w <- toPropertyWith "foo" p
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)
@@ -87,7 +64,7 @@ test = do
       itAsync "should be id when property has current value" $ \done -> do
         e <- emitter
         p <- toPropertyWith "foo" e
-        w <- withDefault "xxx" p
+        w <- toPropertyWith "xxx" p
 
         r <- newRef ""
         onValue w $ \v -> modifyRef r (\a -> a ++ v)
@@ -98,6 +75,14 @@ test = do
 
         emit e "bar"
         end e
+
+    describe "changes" $
+      itAsync "should be same to original." $ \done -> do
+        c <- constant "foo"
+        s <- changes c
+
+        onValue s $ \v -> v @?= "foo"
+        onEnd s $ itIs done
 
   describe "modify an observable" $ do
     describe "map" $

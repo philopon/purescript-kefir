@@ -147,7 +147,7 @@ test = do
 
   describe "onAny" $ itAsync "should observe any events" $ \done -> do
     emt <- emitter
-    prp <- withDefault "def" emt
+    prp <- toPropertyWith "def" emt
     ref <- newRef ""
     onAny prp $ \ev -> case ev of
       Value cur v | cur       -> modifyRef ref ((++) $ "v:" ++ v)

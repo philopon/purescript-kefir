@@ -14,8 +14,8 @@
     "gulp-mocha": "^2.0.0",
     "gulp-purescript": "^0.1.2",
     "gulp-shell": "^0.2.11",
-    "kefir": "^0.4.2",
+    "kefir": "^0.5.1",
     "run-sequence": "^1.0.2",
-    "webpack": "^1.4.14"
+    "webpack": "^1.4.15"
   }
 }

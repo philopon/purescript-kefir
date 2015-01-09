@@ -1,12 +1,10 @@
 var K = require('kefir')
 
 function streamType(s){
-  if(s.toProperty === undefined){
-    return "prop";
-  } else if(s.changes === undefined){
+  if(s._current === undefined){
     return "stream";
   } else {
-    return "unknown";
+    return "prop";
   }
 }
 
