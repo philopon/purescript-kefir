@@ -433,7 +433,7 @@ function onAnyImpl(cnsts, str, fn){
 }""" :: forall a. a
 
 onAny :: forall eff e a. Stream _ _ e a -> (Event e a -> EffKefir eff _) -> EffKefir eff (Unregister eff)
-onAny s f = runFn3 onAnyImpl {value: mkFn2 Value, error: mkFn2 Error, end: End} s f
+onAny s f = runFn3 onAnyImpl {value: mkFn2 $ \a b -> Value a b, error: mkFn2 $ \a b -> Error a b, end: End} s f
 
 foreign import onLogImpl """
 function onLogImpl (sream) {
@@ -605,7 +605,7 @@ function skipDuplicatesWithImpl(f, stream){
 }""" :: forall a. a
 
 skipDuplicatesWith :: forall s e a. (a -> a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
-skipDuplicatesWith f s = runFn2 skipDuplicatesWithImpl (mkFn2 f) s
+skipDuplicatesWith f s = runFn2 skipDuplicatesWithImpl (mkFn2 $ \a b -> f a b) s
 
 skipDuplicates :: forall e s a. (Eq a) => Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 skipDuplicates = skipDuplicatesWith (==)
@@ -618,7 +618,7 @@ function diff1Impl(f, stream){
 }""" :: forall a. a
 
 diff1 :: forall s e a b. (a -> a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
-diff1 f s = runFn2 diff1Impl (mkFn2 f) s
+diff1 f s = runFn2 diff1Impl (mkFn2 $ \a b -> f a b) s
 
 foreign import diffImpl """
 function diffImpl(f, a, stream){
@@ -628,7 +628,7 @@ function diffImpl(f, a, stream){
 }""" :: forall a. a
 
 diff :: forall s e a b. (a -> a -> b) -> a -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
-diff f a s = runFn3 diffImpl (mkFn2 f) a s
+diff f a s = runFn3 diffImpl (mkFn2 $ \a b -> f a b) a s
 
 foreign import scan1Impl """
 function scan1Impl(f, stream){
@@ -638,7 +638,7 @@ function scan1Impl(f, stream){
 }""" :: forall a. a
 
 scan1 :: forall s e a. (a -> a -> a) -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e a)
-scan1 f s = runFn2 scan1Impl (mkFn2 f) s
+scan1 f s = runFn2 scan1Impl (mkFn2 $ \a b -> f a b) s
 
 foreign import scanImpl """
 function scanImpl(f, a, stream){
@@ -648,7 +648,7 @@ function scanImpl(f, a, stream){
 }""" :: forall a. a
 
 scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e b)
-scan f a s = runFn3 scanImpl (mkFn2 f) a s
+scan f a s = runFn3 scanImpl (mkFn2 $ \a b -> f a b) a s
 
 foreign import reduce1Impl """
 function reduce1Impl(f, stream){
@@ -658,7 +658,7 @@ function reduce1Impl(f, stream){
 }""" :: forall a. a
 
 reduce1 :: forall s e a. (a -> a -> a) -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e a)
-reduce1 f s = runFn2 reduce1Impl (mkFn2 f) s
+reduce1 f s = runFn2 reduce1Impl (mkFn2 $ \a b -> f a b) s
 
 foreign import reduceImpl """
 function reduceImpl(f, a, stream){
@@ -668,7 +668,7 @@ function reduceImpl(f, a, stream){
 }""" :: forall a. a
 
 reduce :: forall s e a b. (b -> a -> b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e b)
-reduce f a s = runFn3 reduceImpl (mkFn2 f) a s
+reduce f a s = runFn3 reduceImpl (mkFn2 $ \a b -> f a b) a s
 
 foreign import reduceEff1Impl """
 function reduceEff1Impl(f, stream){
@@ -830,7 +830,8 @@ function withHandlerImpl(cnsts, src, fun){
 }""" :: forall a. a
 
 withHandler :: forall eff e e' a b. Stream _ _ e a -> (Stream (Emit()) (All()) e' b -> Event e a -> EffKefir eff _) -> EffKefir eff (Stream () (All()) e' b)
-withHandler s f = runFn3 withHandlerImpl {value: mkFn2 Value, error: mkFn2 Error, end: End} s (mkFn2 f)
+withHandler s f = runFn3 withHandlerImpl
+  {value: mkFn2 $ \a b -> Value a b, error: mkFn2 $ \a b -> Error a b, end: End} s (mkFn2 $ \a b -> f a b)
 
 foreign import valuesToErrorsImpl """
 function valuesToErrorsImpl(cnsts, f, stream){
@@ -950,7 +951,7 @@ function combineImpl(a, b, f) {
 }""" :: forall a. a
 
 combine :: forall e a b x. Stream _ _ e a -> Stream _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All()) e x)
-combine a b f = runFn3 combineImpl a b (mkFn2 f)
+combine a b f = runFn3 combineImpl a b (mkFn2 $ \a b -> f a b)
 
 foreign import andImpl """
 function andImpl(kefir, os) {
@@ -983,7 +984,7 @@ function sampledByImpl(pas, act, fn) {
 type Passive = Stream
 type Active  = Stream
 sampledBy :: forall s e a b x. Passive _ _ e a -> Active _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All()) e x)
-sampledBy pass act f = runFn3 sampledByImpl pass act (mkFn2 f)
+sampledBy pass act f = runFn3 sampledByImpl pass act (mkFn2 $ \a b -> f a b)
 
 -- TODO: zip multi stream
 foreign import zipWithImpl """
@@ -994,7 +995,7 @@ function zipWithImpl(f, a, b) {
 }""" :: forall a. a
 
 zipWith :: forall s e a b x. (a -> b -> x) -> Stream _ s e a -> Stream _ s e b -> EffKefir _ (Stream () s e x)
-zipWith f a b = runFn3 zipWithImpl (mkFn2 f) a b
+zipWith f a b = runFn3 zipWithImpl (mkFn2 $ \a b -> f a b) a b
 
 foreign import mergeImpl """
 function mergeImpl(kefir, os) {
