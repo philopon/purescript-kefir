@@ -101,12 +101,13 @@ type Property = Stream
 
 type EffKefir e = Eff (kefir :: Kefir | e)
 
+-- Stream
+
 foreign import execute """
   function execute(m){
     return m();
   }""" :: forall e a. Eff e a -> a
 
--- Stream
 foreign import data Terminable :: *
 foreign import data Observable :: *
 foreign import data HasError   :: *
@@ -357,7 +358,6 @@ constantError e = runFn2 constantErrorImpl kefir e
 -- TODO: fromPromise
 
 -- Observable Impl
-type Unregister e = EffKefir e Unit
 
 foreign import onValueImpl """
 function onValueImpl(str, fn){
@@ -371,6 +371,8 @@ function onValueImpl(str, fn){
     }
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (a -> EffKefir eff b) (EffKefir eff (Unregister eff))
+
+type Unregister e = EffKefir e Unit
 
 onValue :: forall e a. Stream _ (Obs _) _ a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
 onValue s f = runFn2 onValueImpl s f
@@ -496,6 +498,8 @@ function changesImpl(stream){
 changes :: forall s e a. Property _ s e a -> EffKefir _ (Stream () s e a)
 changes = changesImpl
 
+-- modify an observable
+
 foreign import mapImpl """
 function mapImpl(fn, stream){
   return function MapEff(){
@@ -503,7 +507,6 @@ function mapImpl(fn, stream){
   }
 }""" :: forall a. a
 
--- modify an observable
 map :: forall s e a b. (a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
 map f s = runFn2 mapImpl f s
 
