@@ -96,7 +96,7 @@ import Data.Either
 import Data.Function
 
 foreign import data Kefir    :: !
-foreign import data Stream   :: #* -> #* -> * -> * -> *
+foreign import data Stream   :: # * -> # * -> * -> * -> *
 type Property = Stream
 
 type EffKefir e = Eff (kefir :: Kefir | e)
