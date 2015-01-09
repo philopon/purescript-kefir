@@ -108,7 +108,7 @@
 
     endAsync :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
 
-    endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (ObsEnd ()) e _)
+    endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (Err s) e _)
 
     error :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
 
@@ -154,9 +154,9 @@
 
     fromBinder :: forall e a. (Stream (Emit ()) (All ()) _ a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream () (All ()) _ a)
 
-    fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream () (ObsEnd ()) _ a)
+    fromCallback :: forall e a. EffKefir e a -> EffKefir e (Stream () (ObsEnd ()) _ a)
 
-    fromNodeCallback :: forall eff e a. ((Either e a -> EffKefir eff Unit) -> EffKefir eff Unit) -> EffKefir eff (Stream () (All ()) e a)
+    fromNodeCallback :: forall eff e a. EffKefir eff (Either e a) -> EffKefir eff (Stream () (All ()) e a)
 
     fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Stream () (Obs ()) _ a)
 

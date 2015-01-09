@@ -297,17 +297,12 @@ foreign import fromCallbackImpl """
 function fromCallbackImpl(kefir, fn){
   return function FromCallbackEff(){
     return kefir.fromCallback(function(cb){
-      function callback(a){
-        return function (){
-          cb(a);
-        }
-      }
-      fn(callback)();
+      cb(fn());
     });
   }
 }""" :: forall a. a
 
-fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream () (ObsEnd()) _ a)
+fromCallback :: forall e a. (EffKefir e a) -> EffKefir e (Stream () (ObsEnd()) _ a)
 fromCallback f = runFn2 fromCallbackImpl kefir f
 
 -- fromCallback
@@ -315,17 +310,12 @@ foreign import fromNodeCallbackImpl """
 function fromNodeCallbackImpl(either, kefir, fn){
   return function FromNodeCallbackEff(){
     return kefir.fromNodeCallback(function(cb){
-      function callback(a){
-        return function (){
-          either(function(e){return cb(true, e)})(function(v){return cb(null, v);})(a);
-        }
-      }
-      fn(callback)();
+      either(function(e){cb(e);})(function(v){cb(null, v);})(fn());
     });
   }
 }""" :: forall a. a
 
-fromNodeCallback :: forall eff e a. ((Either e a -> EffKefir eff Unit) -> EffKefir eff Unit) -> EffKefir eff (Stream () (All()) e a)
+fromNodeCallback :: forall eff e a. (EffKefir eff (Either e a)) -> EffKefir eff (Stream () (All()) e a)
 fromNodeCallback f = runFn3 fromNodeCallbackImpl either kefir f
 
 -- TODO: fromSubUnsub
@@ -843,7 +833,7 @@ withHandler :: forall eff e e' a b. Stream _ _ e a -> (Stream (Emit()) (All()) e
 withHandler s f = runFn3 withHandlerImpl {value: mkFn2 Value, error: mkFn2 Error, end: End} s (mkFn2 f)
 
 foreign import valuesToErrorsImpl """
-function valuesToErrorsImpl(cnsts, stream, f){
+function valuesToErrorsImpl(cnsts, f, stream){
   return function ValuesToErrorsEff(){
     function valuesToErrorsCallback(a){
       var mb = f(a);
@@ -859,10 +849,10 @@ function valuesToErrorsImpl(cnsts, stream, f){
 }""" :: forall a. a
 
 valuesToErrors :: forall s e a. (a -> Maybe e) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (All()) e a)
-valuesToErrors s f = runFn3 valuesToErrorsImpl { isNothing: isNothing, fromJust: fromJust } s f
+valuesToErrors f s = runFn3 valuesToErrorsImpl { isNothing: isNothing, fromJust: fromJust } f s
 
 foreign import errorsToValuesImpl """
-function errorsToValuesImpl(cnsts, stream, f){
+function errorsToValuesImpl(cnsts, f, stream){
   return function ErrorsToValuesEff(){
     function errorsToValuesCallback(a){
       var mb = f(a);
@@ -873,12 +863,12 @@ function errorsToValuesImpl(cnsts, stream, f){
       }
     }
 
-    return stream.errorsToValues(valueToErrorsCallback);
+    return stream.errorsToValues(errorsToValuesCallback);
   }
 }""" :: forall a. a
 
 errorsToValues :: forall s e a. (e -> Maybe a) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (All()) e a)
-errorsToValues s f = runFn3 errorsToValuesImpl { isNothing: isNothing, fromJust: fromJust } s f
+errorsToValues f s = runFn3 errorsToValuesImpl { isNothing: isNothing, fromJust: fromJust } f s
 
 foreign import mapErrorsImpl """
 function mapErrorsImpl(f, stream){
@@ -947,7 +937,7 @@ function endOnErrorImpl(stream){
   }
 }""" :: forall a. a
 
-endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (ObsEnd()) e _)
+endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (Err s) e _)
 endOnError = endOnErrorImpl
 
 -- Combine
