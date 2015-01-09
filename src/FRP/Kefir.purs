@@ -1,8 +1,14 @@
 module FRP.Kefir
   ( Kefir(), Stream(), Property(), EffKefir()
-  , Terminable(), Observable(), Emittable(), Pluggable()
-  , HasE(), HasO(), HasP(), HasT()
-  , E(), O(), P(), T(), OT(), EP()
+
+  , Terminable(), Observable(), HasError()
+  , Emittable(), Pluggable()
+
+  , Obs(), Err(), End()
+  , ObsEnd(), ObsErr(), ErrEnd()
+  , All()
+
+  , Emit(), Plug(), EmitPlug()
 
   , Unregister()
   , onEnd
@@ -103,21 +109,23 @@ foreign import execute """
 -- Stream
 foreign import data Terminable :: *
 foreign import data Observable :: *
+foreign import data HasError   :: *
+
 foreign import data Emittable  :: *
 foreign import data Pluggable  :: *
 
-type HasO s = (observable :: Observable | s)
-type HasT s = (terminable :: Terminable | s)
-type O    = HasO ()
-type T    = HasT ()
-type OT   = (observable :: Observable, terminable :: Terminable)
+type Obs s = (observable :: Observable | s)
+type End s = (terminable :: Terminable | s)
+type Err s = (hasError   :: HasError   | s)
 
-type HasE s = (emittable  :: Emittable | s)
-type HasP s = (pluggable  :: Pluggable | s)
+type ObsEnd s = (observable :: Observable, terminable :: Terminable | s)
+type ObsErr s = (observable :: Observable, hasError :: HasError | s)
+type ErrEnd s = (hasError :: HasError, terminable :: Terminable | s)
+type All    s = (hasError :: HasError, observable :: Observable, terminable :: Terminable | s)
 
-type E    = HasE ()
-type P    = HasP ()
-type EP   = (emittable :: Emittable, pluggable :: Pluggable)
+type Emit s = (emittable  :: Emittable | s)
+type Plug s = (pluggable  :: Pluggable | s)
+type EmitPlug s = (emittable :: Emittable, pluggable :: Pluggable | s)
 
 foreign import forgetImpl """
 function forgetImpl(stream){
@@ -144,7 +152,7 @@ function emitterImpl(kefir){
   }
 }""" :: forall a. a
 
-emitter :: EffKefir _ (Stream E OT _ _)
+emitter :: EffKefir _ (Stream (Emit()) (All()) _ _)
 emitter = emitterImpl kefir
 
 foreign import emitImpl """
@@ -154,7 +162,7 @@ function emitImpl(stream, value){
   }
 }""" :: forall a. a
 
-emit :: forall a. Stream (HasE _) _ _ a -> a -> EffKefir _ Unit
+emit :: forall a. Stream (Emit _) (Obs _) _ a -> a -> EffKefir _ Unit
 emit s a = runFn2 emitImpl s a
 
 foreign import errorImpl """
@@ -164,7 +172,7 @@ function errorImpl(stream, value){
   }
 }""" :: forall a. a
 
-error :: forall e. Stream (HasE _) _ e _ -> e -> EffKefir _ Unit
+error :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
 error s a = runFn2 errorImpl s a
 
 foreign import endImpl """
@@ -174,7 +182,7 @@ function endImpl(stream){
   }
 }""" :: forall a. a
 
-end :: Stream (HasE _) _ _ _ -> EffKefir _ Unit
+end :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
 end = endImpl
 
 foreign import emitAsyncImpl """
@@ -184,7 +192,7 @@ function emitAsyncImpl(stream, value){
   }
 }""" :: forall a. a
 
-emitAsync :: forall a. Stream (HasE _) _ _ a -> a -> EffKefir _ Unit
+emitAsync :: forall a. Stream (Emit _) (Obs _) _ a -> a -> EffKefir _ Unit
 emitAsync s a = runFn2 emitAsyncImpl s a
 
 foreign import errorAsyncImpl """
@@ -194,7 +202,7 @@ function errorAsyncImpl(stream, value){
   }
 }""" :: forall a. a
 
-errorAsync :: forall e. Stream (HasE _) _ e _ -> e -> EffKefir _ Unit
+errorAsync :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
 errorAsync s a = runFn2 errorAsyncImpl s a
 
 foreign import endAsyncImpl """
@@ -204,7 +212,7 @@ function endAsyncImpl(stream){
   }
 }""" :: forall a. a
 
-endAsync :: Stream (HasE _) _ _ _ -> EffKefir _ Unit
+endAsync :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
 endAsync = endAsyncImpl
 
 -- never
@@ -215,7 +223,7 @@ function neverImpl(kefir){
   }
 }""" :: forall a. a
 
-never :: EffKefir _ (Stream () T _ _)
+never :: EffKefir _ (Stream () (End()) _ _)
 never = neverImpl kefir
 
 -- later
@@ -226,7 +234,7 @@ function laterImpl(kefir, time, value){
   }
 }""" :: forall a. a
 
-later :: forall a. Number -> a -> EffKefir _ (Stream () OT _ a)
+later :: forall a. Number -> a -> EffKefir _ (Stream () (ObsEnd()) _ a)
 later t a = runFn3 laterImpl kefir t a
 
 -- Interval
@@ -237,7 +245,7 @@ function intervalImpl(kefir, time, value){
   }
 }""" :: forall a. a
 
-interval :: forall a. Number -> a -> EffKefir _ (Stream () O _ a)
+interval :: forall a. Number -> a -> EffKefir _ (Stream () (Obs()) _ a)
 interval t a = runFn3 intervalImpl kefir t a
 
 -- sequentially
@@ -248,7 +256,7 @@ function sequentiallyImpl(kefir, time, value){
   }
 }""" :: forall a. a
 
-sequentially :: forall a. Number -> [a] -> EffKefir _ (Stream () OT _ a)
+sequentially :: forall a. Number -> [a] -> EffKefir _ (Stream () (ObsEnd()) _ a)
 sequentially t a = runFn3 sequentiallyImpl kefir t a
 
 -- repeatedly
@@ -259,7 +267,7 @@ function repeatedlyImpl(kefir, time, value){
   }
 }""" :: forall a. a
 
-repeatedly :: forall a. Number -> [a] -> EffKefir _ (Stream () O _ a)
+repeatedly :: forall a. Number -> [a] -> EffKefir _ (Stream () (Obs()) _ a)
 repeatedly t a = runFn3 repeatedlyImpl kefir t a
 
 -- fromPoll
@@ -270,7 +278,7 @@ function fromPollImpl(kefir, time, func){
   }
 }""" :: forall a. a
 
-fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Stream () O _ a)
+fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Stream () (Obs()) _ a)
 fromPoll t a = runFn3 fromPollImpl kefir t a
 
 -- withinterval
@@ -281,7 +289,7 @@ function withIntervalImpl(kefir, interval, cb){
   }
 }""" :: forall a. a
 
-withInterval :: forall e a. Number -> (Stream E () _ a -> EffKefir e Unit) -> EffKefir e (Stream () OT _ a)
+withInterval :: forall e a. Number -> (Stream (Emit()) (All()) _ a -> EffKefir e Unit) -> EffKefir e (Stream () (ObsEnd()) _ a)
 withInterval t a = runFn3 withIntervalImpl kefir t a
 
 -- fromCallback
@@ -299,7 +307,7 @@ function fromCallbackImpl(kefir, fn){
   }
 }""" :: forall a. a
 
-fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream () OT _ a)
+fromCallback :: forall e a. ((a -> EffKefir e Unit) -> EffKefir e Unit) -> EffKefir e (Stream () (ObsEnd()) _ a)
 fromCallback f = runFn2 fromCallbackImpl kefir f
 
 -- fromCallback
@@ -317,7 +325,7 @@ function fromNodeCallbackImpl(either, kefir, fn){
   }
 }""" :: forall a. a
 
-fromNodeCallback :: forall eff e a. ((Either e a -> EffKefir eff Unit) -> EffKefir eff Unit) -> EffKefir eff (Stream () OT e a)
+fromNodeCallback :: forall eff e a. ((Either e a -> EffKefir eff Unit) -> EffKefir eff Unit) -> EffKefir eff (Stream () (All()) e a)
 fromNodeCallback f = runFn3 fromNodeCallbackImpl either kefir f
 
 -- TODO: fromSubUnsub
@@ -332,7 +340,7 @@ function fromBinderImpl(kefir, binder){
   }
 }""" :: forall a. a
 
-fromBinder :: forall e a. (Stream E () _ a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream () OT _ a)
+fromBinder :: forall e a. (Stream (Emit()) (All()) _ a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream () (All()) _ a)
 fromBinder f = runFn2 fromBinderImpl kefir f
 
 -- Property
@@ -343,7 +351,7 @@ function constantImpl(kefir, a){
   }
 }""" :: forall a. a
 
-constant :: forall a. a -> EffKefir _ (Property () OT _ a)
+constant :: forall a. a -> EffKefir _ (Property () (ObsEnd()) _ a)
 constant a = runFn2 constantImpl kefir a
 
 foreign import constantErrorImpl """
@@ -353,7 +361,7 @@ function constantErrorImpl(kefir, a){
   }
 }""" :: forall a. a
 
-constantError :: forall e. e -> EffKefir _ (Property () OT e _)
+constantError :: forall e. e -> EffKefir _ (Property () (ErrEnd()) e _)
 constantError e = runFn2 constantErrorImpl kefir e
 
 -- TODO: fromPromise
@@ -374,7 +382,7 @@ function onValueImpl(str, fn){
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (a -> EffKefir eff b) (EffKefir eff (Unregister eff))
 
-onValue :: forall e a. Stream _ (HasO _) _ a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
+onValue :: forall e a. Stream _ (Obs _) _ a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
 onValue s f = runFn2 onValueImpl s f
 
 foreign import onErrorImpl """
@@ -390,7 +398,7 @@ function onErrorImpl(str, fn){
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (e -> EffKefir eff b) (EffKefir eff (Unregister eff))
 
-onError :: forall eff e. Stream _ (HasO _) e _ -> (e -> EffKefir eff _) -> EffKefir eff (Unregister eff)
+onError :: forall eff e. Stream _ (Err _) e _ -> (e -> EffKefir eff _) -> EffKefir eff (Unregister eff)
 onError s f = runFn2 onErrorImpl s f
 
 foreign import onEndImpl """
@@ -406,7 +414,7 @@ function onEndImpl(str, fn){
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (EffKefir eff b) (EffKefir eff (Unregister eff))
 
-onEnd :: forall e. Stream _ (HasT _) _ _ -> (EffKefir e _) -> EffKefir e (Unregister e)
+onEnd :: forall e. Stream _ (End _) _ _ -> (EffKefir e _) -> EffKefir e (Unregister e)
 onEnd s f = runFn2 onEndImpl s f
 
 data Event e a
@@ -506,7 +514,7 @@ function mapImpl(fn, stream){
 }""" :: forall a. a
 
 -- modify an observable
-map :: forall s e a b. (a -> b) -> Stream _ s e a -> EffKefir _ (Stream () s e b)
+map :: forall s e a b. (a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
 map f s = runFn2 mapImpl f s
 
 foreign import mapEffImpl """
@@ -516,7 +524,7 @@ function mapEffImpl(fn, stream){
   }
 }""" :: forall a. a
 
-mapEff :: forall eff s e a b. (a -> EffKefir eff b) -> Stream _ s e a -> EffKefir eff (Stream () s e b)
+mapEff :: forall eff s e a b. (a -> EffKefir eff b) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e b)
 mapEff f s = runFn2 mapEffImpl f s
 
 foreign import filterImpl """
@@ -526,7 +534,7 @@ function filterImpl(fn, stream){
   }
 }""" :: forall a. a
 
-filter :: forall s e a. (a -> Boolean) -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+filter :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 filter f s = runFn2 filterImpl f s
 
 foreign import filterEffImpl """
@@ -536,7 +544,7 @@ function filterEffImpl(fn, stream){
   }
 }""" :: forall a. a
 
-filterEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ s e a -> EffKefir eff (Stream () s e a)
+filterEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e a)
 filterEff f s = runFn2 filterEffImpl f s
 
 foreign import takeImpl """
@@ -546,7 +554,7 @@ function takeImpl(n, stream){
   }
 }""" :: forall a. a
 
-take :: forall e a. Number -> Stream _ _ e a -> EffKefir _ (Stream () OT e a)
+take :: forall e a. Number -> Stream _ (Obs _) e a -> EffKefir _ (Stream () (All()) e a)
 take n s = runFn2 takeImpl n s
 
 foreign import takeWhileImpl """
@@ -556,7 +564,7 @@ function takeWhileImpl(f, stream){
   }
 }""" :: forall a. a
 
-takeWhile :: forall e a. (a -> Boolean) -> Stream _ _ e a -> EffKefir _ (Stream () OT e a)
+takeWhile :: forall e a. (a -> Boolean) -> Stream _ (Obs _) e a -> EffKefir _ (Stream () (All()) e a)
 takeWhile f s = runFn2 takeWhileImpl f s
 
 foreign import takeWhileEffImpl """
@@ -566,7 +574,7 @@ function takeWhileEffImpl(f, stream){
   }
 }""" :: forall a. a
 
-takeWhileEff :: forall eff e a. (a -> EffKefir eff Boolean) -> Stream _ _ e a -> EffKefir eff (Stream () OT e a)
+takeWhileEff :: forall eff e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs _) e a -> EffKefir eff (Stream () (All()) e a)
 takeWhileEff f s = runFn2 takeWhileEffImpl f s
 
 foreign import skipImpl """
@@ -576,7 +584,7 @@ function skipImpl(n, stream){
   }
 }""" :: forall a. a
 
-skip :: forall s e a. Number -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+skip :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 skip n s = runFn2 skipImpl n s
 
 foreign import skipWhileImpl """
@@ -586,7 +594,7 @@ function skipWhileImpl(f, stream){
   }
 }""" :: forall a. a
 
-skipWhile :: forall s e a. (a -> Boolean) -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+skipWhile :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 skipWhile f s = runFn2 skipWhileImpl f s
 
 foreign import skipWhileEffImpl """
@@ -596,7 +604,7 @@ function skipWhileEffImpl(f, stream){
   }
 }""" :: forall a. a
 
-skipWhileEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ s e a -> EffKefir eff (Stream () s e a)
+skipWhileEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e a)
 skipWhileEff f s = runFn2 skipWhileEffImpl f s
 
 foreign import skipDuplicatesWithImpl """
@@ -606,10 +614,10 @@ function skipDuplicatesWithImpl(f, stream){
   }
 }""" :: forall a. a
 
-skipDuplicatesWith :: forall s e a. (a -> a -> Boolean) -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+skipDuplicatesWith :: forall s e a. (a -> a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 skipDuplicatesWith f s = runFn2 skipDuplicatesWithImpl (mkFn2 f) s
 
-skipDuplicates :: forall e s a. (Eq a) => Stream _ s e a -> EffKefir _ (Stream () s e a)
+skipDuplicates :: forall e s a. (Eq a) => Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 skipDuplicates = skipDuplicatesWith (==)
 
 foreign import diff1Impl """
@@ -619,7 +627,7 @@ function diff1Impl(f, stream){
   }
 }""" :: forall a. a
 
-diff1 :: forall s e a b. (a -> a -> b) -> Stream _ s e a -> EffKefir _ (Stream () s e b)
+diff1 :: forall s e a b. (a -> a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
 diff1 f s = runFn2 diff1Impl (mkFn2 f) s
 
 foreign import diffImpl """
@@ -629,7 +637,7 @@ function diffImpl(f, a, stream){
   }
 }""" :: forall a. a
 
-diff :: forall s e a b. (a -> a -> b) -> a -> Stream _ s e a -> EffKefir _ (Stream () s e b)
+diff :: forall s e a b. (a -> a -> b) -> a -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
 diff f a s = runFn3 diffImpl (mkFn2 f) a s
 
 foreign import scan1Impl """
@@ -639,7 +647,7 @@ function scan1Impl(f, stream){
   }
 }""" :: forall a. a
 
-scan1 :: forall s e a. (a -> a -> a) -> Stream _ s e a -> EffKefir _ (Property () s e a)
+scan1 :: forall s e a. (a -> a -> a) -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e a)
 scan1 f s = runFn2 scan1Impl (mkFn2 f) s
 
 foreign import scanImpl """
@@ -649,7 +657,7 @@ function scanImpl(f, a, stream){
   }
 }""" :: forall a. a
 
-scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ s e a -> EffKefir _ (Property () s e b)
+scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e b)
 scan f a s = runFn3 scanImpl (mkFn2 f) a s
 
 foreign import reduce1Impl """
@@ -659,7 +667,7 @@ function reduce1Impl(f, stream){
   }
 }""" :: forall a. a
 
-reduce1 :: forall s e a. (a -> a -> a) -> Stream _ (HasT s) e a -> EffKefir _ (Stream () (HasT s) e a)
+reduce1 :: forall s e a. (a -> a -> a) -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e a)
 reduce1 f s = runFn2 reduce1Impl (mkFn2 f) s
 
 foreign import reduceImpl """
@@ -669,7 +677,7 @@ function reduceImpl(f, a, stream){
   }
 }""" :: forall a. a
 
-reduce :: forall s e a b. (b -> a -> b) -> b -> Stream _ (HasT s) e a -> EffKefir _ (Stream () (HasT s) e b)
+reduce :: forall s e a b. (b -> a -> b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e b)
 reduce f a s = runFn3 reduceImpl (mkFn2 f) a s
 
 foreign import reduceEff1Impl """
@@ -679,7 +687,7 @@ function reduceEff1Impl(f, stream){
   }
 }""" :: forall a. a
 
-reduceEff1 :: forall eff s e a. (a -> a -> EffKefir eff a) -> Stream _ (HasT s) e a -> EffKefir eff (Stream () (HasT s) e a)
+reduceEff1 :: forall eff s e a. (a -> a -> EffKefir eff a) -> Stream _ (ObsEnd s) e a -> EffKefir eff (Stream () (ObsEnd s) e a)
 reduceEff1 f s = runFn2 reduceEff1Impl f s
 
 foreign import reduceEffImpl """
@@ -689,7 +697,7 @@ function reduceEffImpl(f, a, stream){
   }
 }""" :: forall a. a
 
-reduceEff :: forall eff s e a b. (b -> a -> EffKefir eff b) -> b -> Stream _ (HasT s) e a -> EffKefir eff (Stream () (HasT s) e b)
+reduceEff :: forall eff s e a b. (b -> a -> EffKefir eff b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir eff (Stream () (ObsEnd s) e b)
 reduceEff f a s = runFn3 reduceEffImpl f a s
 
 foreign import mapEndImpl """
@@ -699,7 +707,7 @@ function mapEndImpl(f, stream){
   }
 }""" :: forall a. a
 
-mapEnd :: forall eff stream s e a. EffKefir eff a -> stream _ (HasT s) e a -> EffKefir eff (stream () OT e a)
+mapEnd :: forall eff s e a. EffKefir eff a -> Stream _ (End s) e a -> EffKefir eff (Stream () (All()) e a)
 mapEnd f s = runFn2 mapEndImpl f s
 
 foreign import skipEndImpl """
@@ -709,7 +717,7 @@ function skipEndImpl(stream){
   }
 }""" :: forall a. a
 
-skipEnd :: forall stream s e a. stream _ (HasT s) e a -> EffKefir _ (stream () s e a)
+skipEnd :: forall s e a. Stream _ (End s) e a -> EffKefir _ (Stream () s e a)
 skipEnd = skipEndImpl
 
 foreign import slidingWindowImpl """
@@ -721,7 +729,7 @@ function slidingWindowImpl(min, max, stream){
 
 type Min = Number
 type Max = Number
-slidingWindow :: forall stream s e a. Min -> Max -> stream _ s e a -> EffKefir _ (stream () s e [a])
+slidingWindow :: forall s e a. Min -> Max -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
 slidingWindow min max s = runFn3 slidingWindowImpl min max s
 
 foreign import bufferWhileImpl """
@@ -731,7 +739,7 @@ function bufferWhileImpl(f, stream){
   }
 }""" :: forall a. a
 
-bufferWhile :: forall stream s e a. (a -> Boolean) -> stream _ s e a -> EffKefir _ (stream () s e [a])
+bufferWhile :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
 bufferWhile f s = runFn2 bufferWhileImpl f s
 
 foreign import bufferWhileWithImpl """
@@ -741,7 +749,7 @@ function bufferWhileWithImpl(opts, f, stream){
   }
 }""" :: forall a. a
 
-bufferWhileWith :: forall stream s e a. {flushOnEnd :: Boolean} -> (a -> Boolean) -> stream _ s e a -> EffKefir _ (stream () s e [a])
+bufferWhileWith :: forall s e a. {flushOnEnd :: Boolean} -> (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
 bufferWhileWith opts f s = runFn3 bufferWhileWithImpl opts f s
 
 foreign import delayImpl """
@@ -751,7 +759,7 @@ function delayImpl(d, stream){
   }
 }""" :: forall a. a
 
-delay :: forall stream s e a. Number -> stream _ s e a -> EffKefir _ (stream () s e a)
+delay :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 delay w s = runFn2 delayImpl w s
 
 foreign import throttleImpl """
@@ -761,7 +769,7 @@ function throttleImpl(d, stream){
   }
 }""" :: forall a. a
 
-throttle :: forall stream s e a. Number -> stream _ s e a -> EffKefir _ (stream () s e a)
+throttle :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 throttle d s = runFn2 throttleImpl d s
 
 foreign import throttleWithImpl """
@@ -772,7 +780,7 @@ function throttleWithImpl(opts, d, stream){
   }
 }""" :: forall a. a
 
-throttleWith :: forall stream s e a. {leading :: Boolean, trailing :: Boolean} -> Number -> stream _ s e a -> EffKefir _ (stream () s e a)
+throttleWith :: forall s e a. {leading :: Boolean, trailing :: Boolean} -> Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 throttleWith opts d s = runFn3 throttleWithImpl opts d s
 
 foreign import debounceImpl """
@@ -782,7 +790,7 @@ function debounceImpl(d, stream){
   }
 }""" :: forall a. a
 
-debounce :: forall stream s e a. Number -> stream _ s e a -> EffKefir _ (stream () s e a)
+debounce :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 debounce d s = runFn2 debounceImpl d s
 
 foreign import debounceWithImpl """
@@ -792,7 +800,7 @@ function debounceWithImpl(opts, d, stream){
   }
 }""" :: forall a. a
 
-debounceWith :: forall stream s e a. {immediate :: Boolean} -> Number -> stream _ s e a -> EffKefir _ (stream () s e a)
+debounceWith :: forall s e a. {immediate :: Boolean} -> Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 debounceWith opts d s = runFn3 debounceWithImpl opts d s
 
 foreign import flattenImpl """
@@ -802,7 +810,7 @@ function flattenImpl(stream){
   }
 }""" :: forall a. a
 
-flatten :: forall stream s e a. stream _ s e [a] -> EffKefir _ (stream () s e a)
+flatten :: forall s e a. Stream _ (Obs s) e [a] -> EffKefir _ (Stream () (Obs s) e a)
 flatten = flattenImpl
 
 foreign import flattenWithImpl """
@@ -812,7 +820,7 @@ function flattenWithImpl(f, stream){
   }
 }""" :: forall a. a
 
-flattenWith :: forall stream s e a b. (a -> [b]) -> stream _ s e a -> EffKefir _ (stream () s e b)
+flattenWith :: forall s e a b. (a -> [b]) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
 flattenWith f s = runFn2 flattenWithImpl f s
 
 foreign import withHandlerImpl """
@@ -831,7 +839,7 @@ function withHandlerImpl(cnsts, src, fun){
   }
 }""" :: forall a. a
 
-withHandler :: forall eff e e' a b. Stream _ _ e a -> (Stream E () e' b -> Event e a -> EffKefir eff _) -> EffKefir eff (Stream () OT e' b)
+withHandler :: forall eff e e' a b. Stream _ _ e a -> (Stream (Emit()) (All()) e' b -> Event e a -> EffKefir eff _) -> EffKefir eff (Stream () (All()) e' b)
 withHandler s f = runFn3 withHandlerImpl {value: mkFn2 Value, error: mkFn2 Error, end: End} s (mkFn2 f)
 
 foreign import valuesToErrorsImpl """
@@ -850,7 +858,7 @@ function valuesToErrorsImpl(cnsts, stream, f){
   }
 }""" :: forall a. a
 
-valuesToErrors :: forall s e a. (a -> Maybe e) -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+valuesToErrors :: forall s e a. (a -> Maybe e) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (All()) e a)
 valuesToErrors s f = runFn3 valuesToErrorsImpl { isNothing: isNothing, fromJust: fromJust } s f
 
 foreign import errorsToValuesImpl """
@@ -869,7 +877,7 @@ function errorsToValuesImpl(cnsts, stream, f){
   }
 }""" :: forall a. a
 
-errorsToValues :: forall s e a. (e -> Maybe a) -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+errorsToValues :: forall s e a. (e -> Maybe a) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (All()) e a)
 errorsToValues s f = runFn3 errorsToValuesImpl { isNothing: isNothing, fromJust: fromJust } s f
 
 foreign import mapErrorsImpl """
@@ -879,7 +887,7 @@ function mapErrorsImpl(f, stream){
   }
 }""" :: forall a. a
 
-mapErrors :: forall s e e' a. (e -> e') -> Stream _ s e a -> EffKefir _ (Stream () s e' a)
+mapErrors :: forall s e e' a. (e -> e') -> Stream _ (Err s) e a -> EffKefir _ (Stream () (Err s) e' a)
 mapErrors f s = runFn2 mapErrorsImpl f s
 
 foreign import mapErrorsEffImpl """
@@ -889,7 +897,7 @@ function mapErrorsEffImpl(f, stream){
   }
 }""" :: forall a. a
 
-mapErrorsEff :: forall eff s e e' a. (e -> EffKefir eff e') -> Stream _ s e a -> EffKefir eff (Stream () s e' a)
+mapErrorsEff :: forall eff s e e' a. (e -> EffKefir eff e') -> Stream _ (Err s) e a -> EffKefir eff (Stream () (Err s) e' a)
 mapErrorsEff f s = runFn2 mapErrorsEffImpl f s
 
 foreign import filterErrorsImpl """
@@ -899,7 +907,7 @@ function filterErrorsImpl(f, stream){
   }
 }""" :: forall a. a
 
-filterErrors :: forall s e a. (e -> Boolean) -> Stream _ s e a -> EffKefir _ (Stream () s e a)
+filterErrors :: forall s e a. (e -> Boolean) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (Err s) e a)
 filterErrors f s = runFn2 filterErrorsImpl f s
 
 foreign import filterErrorsEffImpl """
@@ -909,7 +917,7 @@ function filterErrorsEffImpl(f, stream){
   }
 }""" :: forall a. a
 
-filterErrorsEff :: forall eff s e a. (e -> EffKefir eff Boolean) -> Stream _ s e a -> EffKefir eff (Stream () s e a)
+filterErrorsEff :: forall eff s e a. (e -> EffKefir eff Boolean) -> Stream _ (Err s) e a -> EffKefir eff (Stream () (Err s) e a)
 filterErrorsEff f s = runFn2 filterErrorsEffImpl f s
 
 foreign import skipErrorsImpl """
@@ -919,7 +927,7 @@ function skipErrorsImpl(stream){
   }
 }""" :: forall a. a
 
-skipErrors :: forall s a. Stream _ s _ a -> EffKefir _ (Stream () s _ a)
+skipErrors :: forall s a. Stream _ (Err s) _ a -> EffKefir _ (Stream () s _ a)
 skipErrors = skipErrorsImpl
 
 foreign import skipValuesImpl """
@@ -929,7 +937,7 @@ function skipValuesImpl(stream){
   }
 }""" :: forall a. a
 
-skipValues :: forall s e. Stream _ s e _ -> EffKefir _ (Stream () s e _)
+skipValues :: forall s e. Stream _ (Obs s) e _ -> EffKefir _ (Stream () s e _)
 skipValues = skipValuesImpl
 
 foreign import endOnErrorImpl """
@@ -939,7 +947,7 @@ function endOnErrorImpl(stream){
   }
 }""" :: forall a. a
 
-endOnError :: forall s e. Stream _ s e _ -> EffKefir _ (Stream () s e _)
+endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (ObsEnd()) e _)
 endOnError = endOnErrorImpl
 
 -- Combine
@@ -951,7 +959,7 @@ function combineImpl(a, b, f) {
   }
 }""" :: forall a. a
 
-combine :: forall e a b x. Stream _ _ e a -> Stream _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () OT e x)
+combine :: forall e a b x. Stream _ _ e a -> Stream _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All()) e x)
 combine a b f = runFn3 combineImpl a b (mkFn2 f)
 
 foreign import andImpl """
@@ -984,7 +992,7 @@ function sampledByImpl(pas, act, fn) {
 
 type Passive = Stream
 type Active  = Stream
-sampledBy :: forall s e a b x. Passive _ _ e a -> Active _ s e b -> (a -> b -> x) -> EffKefir _ (Stream () s e x)
+sampledBy :: forall s e a b x. Passive _ _ e a -> Active _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All()) e x)
 sampledBy pass act f = runFn3 sampledByImpl pass act (mkFn2 f)
 
 -- TODO: zip multi stream
@@ -1025,7 +1033,7 @@ function poolImpl(kefir) {
   }
 }""" :: forall a. a
 
-pool :: forall eff e a. EffKefir eff (Stream P O e a)
+pool :: forall eff e a. EffKefir eff (Stream (Plug()) (ObsErr()) e a)
 pool = poolImpl kefir
 
 foreign import plugImpl """
@@ -1035,7 +1043,7 @@ function plugImpl(pool, stream){
   }
 }""" :: forall a. a
 
-plug :: forall e a. Stream (HasP _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
+plug :: forall e a. Stream (Plug _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
 plug p s = runFn2 plugImpl p s
 
 foreign import unPlugImpl """
@@ -1045,7 +1053,7 @@ function unPlugImpl(pool, stream){
   }
 }""" :: forall a. a
 
-unPlug :: forall e a. Stream (HasP _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
+unPlug :: forall e a. Stream (Plug _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
 unPlug p s = runFn2 unPlugImpl p s
 
 foreign import busImpl """
@@ -1055,7 +1063,7 @@ function busImpl(kefir) {
   }
 }""" :: forall a. a
 
-bus :: forall eff e a. EffKefir eff (Stream EP OT e a)
+bus :: forall eff e a. EffKefir eff (Stream (EmitPlug()) (All()) e a)
 bus = busImpl kefir
 
 foreign import flatMapImpl """
@@ -1065,7 +1073,7 @@ function flatMapImpl(stream) {
   }
 }""" :: forall a. a
 
-flatMap :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () OT e a)
+flatMap :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All()) e a)
 flatMap = flatMapImpl
 
 foreign import flatMapLatestImpl """
@@ -1075,7 +1083,7 @@ function flatMapLatestImpl(stream) {
   }
 }""" :: forall a. a
 
-flatMapLatest :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () OT e a)
+flatMapLatest :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All()) e a)
 flatMapLatest = flatMapLatestImpl
 
 foreign import flatMapFirstImpl """
@@ -1085,7 +1093,7 @@ function flatMapFirstImpl(stream) {
   }
 }""" :: forall a. a
 
-flatMapFirst :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () OT e a)
+flatMapFirst :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All()) e a)
 flatMapFirst = flatMapFirstImpl
 
 foreign import flatMapConcatImpl """
@@ -1095,7 +1103,7 @@ function flatMapConcatImpl(stream) {
   }
 }""" :: forall a. a
 
-flatMapConcat :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () OT e a)
+flatMapConcat :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All()) e a)
 flatMapConcat = flatMapConcatImpl
 
 foreign import flatMapWithImpl """
@@ -1105,7 +1113,7 @@ function flatMapWithImpl(stream, fn) {
   }
 }""" :: forall a. a
 
-flatMapWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () OT e b)
+flatMapWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All()) e b)
 flatMapWith s f = runFn2 flatMapWithImpl s f
 
 foreign import flatMapLatestWithImpl """
@@ -1115,7 +1123,7 @@ function flatMapLatestWithImpl(stream, fn) {
   }
 }""" :: forall a. a
 
-flatMapLatestWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () OT e b)
+flatMapLatestWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All()) e b)
 flatMapLatestWith s f = runFn2 flatMapLatestWithImpl s f
 
 foreign import flatMapFirstWithImpl """
@@ -1125,7 +1133,7 @@ function flatMapFirstWithImpl(stream, fn) {
   }
 }""" :: forall a. a
 
-flatMapFirstWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () OT e b)
+flatMapFirstWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All()) e b)
 flatMapFirstWith s f = runFn2 flatMapFirstWithImpl s f
 
 foreign import flatMapConcatWithImpl """
@@ -1135,7 +1143,7 @@ function flatMapConcatWithImpl(stream, fn) {
   }
 }""" :: forall a. a
 
-flatMapConcatWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () OT e b)
+flatMapConcatWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All()) e b)
 flatMapConcatWith s f = runFn2 flatMapConcatWithImpl s f
 
 foreign import flatMapConcurLimitImpl """
@@ -1145,7 +1153,7 @@ function flatMapConcurLimitImpl(lim, stream) {
   }
 }""" :: forall a. a
 
-flatMapConcurLimit :: forall e a. Number -> Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () OT e a)
+flatMapConcurLimit :: forall e a. Number -> Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All()) e a)
 flatMapConcurLimit l s = runFn2 flatMapConcurLimitImpl l s
 
 foreign import flatMapConcurLimitWithImpl """
@@ -1155,7 +1163,7 @@ function flatMapConcurLimitWithImpl(lim, stream, fn) {
   }
 }""" :: forall a. a
 
-flatMapConcurLimitWith :: forall eff e a b. Number -> Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () OT e b)
+flatMapConcurLimitWith :: forall eff e a b. Number -> Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All()) e b)
 flatMapConcurLimitWith l s f = runFn3 flatMapConcurLimitWithImpl l s f
 
 -- combine two observables
@@ -1166,7 +1174,7 @@ function filterByImpl(s, f){
   }
 }""" :: forall a. a
 
-filterBy :: forall e s a. Stream _ s e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () s e a)
+filterBy :: forall e s a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e a)
 filterBy s f = runFn2 filterByImpl s f
 
 foreign import takeWhileByImpl """
@@ -1176,7 +1184,7 @@ function takeWhileByImpl(s, f){
   }
 }""" :: forall a. a
 
-takeWhileBy :: forall e a. Stream _ _ e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () OT e a)
+takeWhileBy :: forall e a. Stream _ _ e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () (All()) e a)
 takeWhileBy s f = runFn2 takeWhileByImpl s f
 
 foreign import skipWhileByImpl """
@@ -1186,7 +1194,7 @@ function skipWhileByImpl(s, f){
   }
 }""" :: forall a. a
 
-skipWhileBy :: forall s e a. Stream _ s e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () s e a)
+skipWhileBy :: forall s e a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e a)
 skipWhileBy s f = runFn2 skipWhileByImpl s f
 
 foreign import skipUntilByImpl """
@@ -1196,7 +1204,7 @@ function skipUntilByImpl(s, f){
   }
 }""" :: forall a. a
 
-skipUntilBy :: forall s e a. Stream _ s e a -> Stream _ _ e _ -> EffKefir _ (Stream () s e a)
+skipUntilBy :: forall s e a. Stream _ s e a -> Stream _ s e _ -> EffKefir _ (Stream () s e a)
 skipUntilBy s f = runFn2 skipUntilByImpl s f
 
 foreign import takeUntilByImpl """
@@ -1206,7 +1214,7 @@ function takeUntilByImpl(s, f){
   }
 }""" :: forall a. a
 
-takeUntilBy :: forall e a. Stream _ _ e a -> Stream _ _ e _ -> EffKefir _ (Stream () OT e a)
+takeUntilBy :: forall e a. Stream _ _ e a -> Stream _ _ e _ -> EffKefir _ (Stream () (All()) e a)
 takeUntilBy s f = runFn2 takeUntilByImpl s f
 
 foreign import bufferByImpl """
@@ -1216,7 +1224,7 @@ function bufferByImpl(s, f){
   }
 }""" :: forall a. a
 
-bufferBy :: forall s e a. Stream _ s e a -> Stream _ _ e _ -> EffKefir _ (Stream () s e [a])
+bufferBy :: forall s e a. Stream _ s e a -> Stream _ s e _ -> EffKefir _ (Stream () s e [a])
 bufferBy s f = runFn2 bufferByImpl s f
 
 foreign import bufferWhileByImpl """
@@ -1226,7 +1234,7 @@ function bufferWhileByImpl(s, f){
   }
 }""" :: forall a. a
 
-bufferWhileBy :: forall s e a. Stream _ s e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () s e [a])
+bufferWhileBy :: forall s e a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e [a])
 bufferWhileBy s f = runFn2 bufferWhileByImpl s f
 
 foreign import awaitingImpl """
