@@ -319,8 +319,6 @@ function fromNodeCallbackImpl(either, kefir, fn){
 fromNodeCallback :: forall eff e a. (EffKefir eff (Either e a)) -> EffKefir eff (Stream () (All()) e a)
 fromNodeCallback f = runFn3 fromNodeCallbackImpl either kefir f
 
--- TODO: fromSubUnsub
-
 -- fromBinder
 foreign import fromBinderImpl """
 function fromBinderImpl(kefir, binder){
@@ -354,8 +352,6 @@ function constantErrorImpl(kefir, a){
 
 constantError :: forall e. e -> EffKefir _ (Property () (ErrEnd()) e _)
 constantError e = runFn2 constantErrorImpl kefir e
-
--- TODO: fromPromise
 
 -- Observable Impl
 
@@ -945,7 +941,6 @@ endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (Err s) 
 endOnError = endOnErrorImpl
 
 -- Combine
--- TODO: combine multi stream
 foreign import combineImpl """
 function combineImpl(a, b, f) {
   return function CombineEff(){
@@ -976,7 +971,6 @@ function orImpl(kefir, os) {
 or :: forall s e. [Stream _ s e Boolean] -> EffKefir _ (Stream () s e Boolean)
 or os = runFn2 orImpl kefir os
 
--- TODO: sampledBy multi stream
 foreign import sampledByImpl """
 function sampledByImpl(pas, act, fn) {
   return function SampledByEff(){
@@ -989,7 +983,6 @@ type Active  = Stream
 sampledBy :: forall s e a b x. Passive _ _ e a -> Active _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All()) e x)
 sampledBy pass act f = runFn3 sampledByImpl pass act (mkFn2 $ \a b -> f a b)
 
--- TODO: zip multi stream
 foreign import zipWithImpl """
 function zipWithImpl(f, a, b) {
   return function ZipWithEff(){
