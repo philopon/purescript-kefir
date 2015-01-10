@@ -1,19 +1,18 @@
 #!/bin/bash
 
-cd `dirname $0`
-
-OUT=../src/FRP/Kefir/Foreign.purs
-
-../node_modules/webpack/bin/webpack.js --output-library kefir kefir bundle.js 1>&2
+OUT=src/FRP/Kefir/Foreign.purs
 
 cat <<EOC > $OUT
 module FRP.Kefir.Foreign (kefir) where
 
 foreign import kefir """
+var kefir = (function(module, exports){
 EOC
 
-cat bundle.js | tr -d '\r' >> $OUT
+cat node_modules/kefir/dist/kefir.js >> $OUT
 
 cat <<EOC >> $OUT
-""" :: forall a. a
+
+return module.exports;
+}({}, {}));""" :: forall a. a
 EOC
