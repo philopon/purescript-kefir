@@ -2,7 +2,7 @@ module FRP.Kefir.Foreign (kefir) where
 
 foreign import kefir """
 var kefir = (function(module, exports){
-/*! Kefir.js v0.5.1
+/*! Kefir.js v0.5.2
  *  https://github.com/pozadi/kefir
  */
 ;(function(global){
@@ -2187,6 +2187,12 @@ inherit(FromBinder, Stream, {
         end: function() {  $._send(END, null, isCurrent)  }
       };
     this._unsubscribe = this._fn(emitter) || null;
+
+    // work around https://github.com/pozadi/kefir/issues/35
+    if (!this._active && this._unsubscribe !== null) {
+      this._unsubscribe();
+    }
+
     isCurrent = false;
   },
   _onDeactivation: function() {
