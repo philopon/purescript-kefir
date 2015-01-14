@@ -160,6 +160,7 @@ foreign import emitImpl """
 function emitImpl(stream, value){
   return function EmitEff(){
     stream.emit(value);
+    return {};
   }
 }""" :: forall a. a
 
@@ -170,6 +171,7 @@ foreign import errorImpl """
 function errorImpl(stream, value){
   return function ErrorEff(){
     stream.error(value);
+    return {};
   }
 }""" :: forall a. a
 
@@ -180,6 +182,7 @@ foreign import endImpl """
 function endImpl(stream){
   return function EndEff(){
     stream.end();
+    return {};
   }
 }""" :: forall a. a
 
@@ -190,6 +193,7 @@ foreign import emitAsyncImpl """
 function emitAsyncImpl(stream, value){
   return function EmitAsyncEff(){
     setTimeout(function(){stream.emit(value);}, 0);
+    return {};
   }
 }""" :: forall a. a
 
@@ -200,6 +204,7 @@ foreign import errorAsyncImpl """
 function errorAsyncImpl(stream, value){
   return function ErrorAsyncEff(){
     setTimeout(function(){stream.error(value);}, 0);
+    return {};
   }
 }""" :: forall a. a
 
@@ -210,6 +215,7 @@ foreign import endAsyncImpl """
 function endAsyncImpl(stream){
   return function EndAsyncEff(){
     setTimeout(function(){stream.end();}, 0);
+    return {};
   }
 }""" :: forall a. a
 
@@ -364,6 +370,7 @@ function onValueImpl(str, fn){
     str.onValue(onValueCallback);
     return function offValueEff() {
       str.offValue(onValueCallback);
+      return {};
     }
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (a -> EffKefir eff b) (EffKefir eff (Unregister eff))
@@ -382,6 +389,7 @@ function onErrorImpl(str, fn){
     str.onError(onErrorCallback);
     return function offErrorEff() {
       str.offError(onErrorCallback);
+      return {};
     }
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (e -> EffKefir eff b) (EffKefir eff (Unregister eff))
@@ -398,6 +406,7 @@ function onEndImpl(str, fn){
     str.onEnd(onEndCallback);
     return function offEndEff() {
       str.offEnd(onEndCallback);
+      return {};
     }
   }
 }""" :: forall eff stream p s e a b. Fn2 (stream p s e a) (EffKefir eff b) (EffKefir eff (Unregister eff))
@@ -426,6 +435,7 @@ function onAnyImpl(cnsts, str, fn){
     str.onAny(onAnyCallback);
     return function offAnyEff(){
       str.offAny(onAnyCallback);
+      return {};
     }
   }
 }""" :: forall a. a
@@ -437,6 +447,7 @@ foreign import onLogImpl """
 function onLogImpl (sream) {
   return function OnLogEff(){
     stream.log();
+    return {};
   }
 }""" :: forall a. a
 
@@ -447,6 +458,7 @@ foreign import onLogWithImpl """
 function onLogWithImpl (sream, str) {
   return function OnLogWithEff(){
     stream.log(str);
+    return {};
   }
 }""" :: forall a. a
 
@@ -457,6 +469,7 @@ foreign import offLogImpl """
 function offLogImpl (sream) {
   return function OffLogEff(){
     stream.offLog();
+    return {};
   }
 }""" :: forall a. a
 
@@ -1027,6 +1040,7 @@ foreign import plugImpl """
 function plugImpl(pool, stream){
   return function PlugEff(){
     pool.plug(stream);
+    return {};
   }
 }""" :: forall a. a
 
@@ -1037,6 +1051,7 @@ foreign import unPlugImpl """
 function unPlugImpl(pool, stream){
   return function UnPlugEff(){
     pool.unplug(stream);
+    return {};
   }
 }""" :: forall a. a
 
