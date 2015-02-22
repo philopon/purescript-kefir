@@ -1,6 +1,6 @@
 {
   "name": "purescript-kefir",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "moduleType": [
     "node"
   ],
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "purescript-maybe": "~0.2.1",
-    "purescript-either": "~0.1.4"
+    "purescript-either": "~0.1.4",
+    "purescript-dom": "~0.1.1"
   }
 }
