@@ -254,6 +254,20 @@ fromCallback :: forall e a. EffKefir e a -> EffKefir e (Stream () (ObsEnd ()) _ 
 ```
 
 
+#### `fromEventE`
+
+``` purescript
+fromEventE :: forall e event a. Node -> String -> (event -> EffKefir e a) -> EffKefir e (Stream () (Obs ()) _ a)
+```
+
+
+#### `fromEvent`
+
+``` purescript
+fromEvent :: forall e event a. Node -> String -> (event -> a) -> EffKefir e (Stream () (Obs ()) _ a)
+```
+
+
 #### `fromNodeCallback`
 
 ``` purescript
@@ -478,6 +492,20 @@ scan1 :: forall s e a. (a -> a -> a) -> Stream _ (Obs s) e a -> EffKefir _ (Prop
 
 ``` purescript
 scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e b)
+```
+
+
+#### `scan1Eff`
+
+``` purescript
+scan1Eff :: forall eff s e a. (a -> a -> EffKefir eff a) -> Stream _ (Obs s) e a -> EffKefir eff (Property () (Obs s) e a)
+```
+
+
+#### `scanEff`
+
+``` purescript
+scanEff :: forall eff s e a b. (b -> a -> EffKefir eff b) -> b -> Stream _ (Obs s) e a -> EffKefir eff (Property () (Obs s) e b)
 ```
 
 
