@@ -8,7 +8,7 @@ var sequence   = require('run-sequence');
 var path       = require('path');
 
 var bowerPurs = 'bower_components/purescript-*/src/**/*.purs';
-var sources = [bowerPurs, 'src/**/*.purs', 'examples/**/*.purs'];
+var sources = [bowerPurs, 'src/**/*.purs'];
 
 gulp.task('wrapper', shell.task([
   './wrapper/generate.sh'

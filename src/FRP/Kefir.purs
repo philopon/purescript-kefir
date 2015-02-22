@@ -49,6 +49,7 @@ module FRP.Kefir
   , skipDuplicatesWith, skipDuplicates
   , diff1, diff
   , scan1, scan
+  , scan1Eff, scanEff
   , reduce1, reduce, reduceEff1, reduceEff
   , mapEnd, skipEnd
   , Min(), Max(), slidingWindow
@@ -679,6 +680,32 @@ function scanImpl(f, a, stream){
 
 scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e b)
 scan f a s = runFn3 scanImpl (mkFn2 $ \a b -> f a b) a s
+
+foreign import scan1EffImpl """
+function scan1EffImpl(f, stream){
+  return function Scan1EffEff(){
+    var fn = function(b, a){
+      return f(b, a)();
+    }
+    return stream['scan'](fn);
+  }
+}""" :: forall a. a
+
+scan1Eff :: forall eff s e a. (a -> a -> EffKefir eff a) -> Stream _ (Obs s) e a -> EffKefir eff (Property () (Obs s) e a)
+scan1Eff f s = runFn2 scan1EffImpl (mkFn2 $ \a b -> f a b) s
+
+foreign import scanEffImpl """
+function scanEffImpl(f, a, stream){
+  return function ScanEffEff(){
+    var fn = function(b, a){
+      return f(b, a)();
+    }
+    return stream['scan'](fn, a);
+  }
+}""" :: forall a. a
+
+scanEff :: forall eff s e a b. (b -> a -> EffKefir eff b) -> b -> Stream _ (Obs s) e a -> EffKefir eff (Property () (Obs s) e b)
+scanEff f a s = runFn3 scanEffImpl (mkFn2 $ \a b -> f a b) a s
 
 foreign import reduce1Impl """
 function reduce1Impl(f, stream){

@@ -359,6 +359,33 @@ test = do
           v @?= 2 + (2 + 3) + (2 + 3 + 4) + (2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)
           itIs done
 
+    describe "scan1Eff" $
+      itAsync "should scan" $ \done -> do
+        s <- sequentially 1 (range 3 6)
+        n <- scan1Eff (\a b -> return $ a + b) s
+
+        r <- newRef 0
+        onValue n $ modifyRef r <<< (+)
+
+        onEnd n $ do
+          v <- readRef r
+          v @?= 3 + (3 + 4) + (3 + 4 + 5) + (3 + 4 + 5 + 6)
+          itIs done
+ 
+    describe "scanEff" $
+      itAsync "should scan with initial value with side effects" $ \done -> do
+        s <- sequentially 1 (show <$> range 3 6)
+        n <- scanEff (\n i -> return $ n + either (show >>> itIsNot' done) id (readJSON i)) 2 s
+
+        r <- newRef 0
+        onValue n $ modifyRef r <<< (+)
+
+        onEnd n $ do
+          v <- readRef r
+          v @?= 2 + (2 + 3) + (2 + 3 + 4) + (2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)
+          itIs done
+
+
     describe "reduce1" $
       itAsync "should reduce to value" $ \done -> do
         s <- sequentially 1 (range 0 10)
