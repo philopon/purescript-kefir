@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "purescript-maybe": "~0.2.1",
-    "purescript-either": "~0.1.4"
+    "purescript-either": "~0.1.4",
+    "purescript-dom": "~0.1.1"
   }
 }

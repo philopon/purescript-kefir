@@ -2,400 +2,911 @@
 
 ## Module FRP.Kefir
 
-### Types
+#### `Kefir`
 
+``` purescript
+data Kefir :: !
+```
 
-    type Active = Stream
 
+#### `Stream`
 
-    type All s = (terminable :: Terminable, observable :: Observable, hasError :: HasError | s)
+``` purescript
+data Stream :: # * -> # * -> * -> * -> *
+```
 
 
-    type EffKefir e = Eff (kefir :: Kefir | e)
+#### `Property`
 
+``` purescript
+type Property = Stream
+```
 
-    type Emit s = (emittable :: Emittable | s)
 
+#### `EffKefir`
 
-    type EmitPlug s = (pluggable :: Pluggable, emittable :: Emittable | s)
+``` purescript
+type EffKefir e = Eff (kefir :: Kefir | e)
+```
 
 
-    data Emittable :: *
+#### `Terminable`
 
+``` purescript
+data Terminable :: *
+```
 
-    type End s = (terminable :: Terminable | s)
 
+#### `Observable`
 
-    type Err s = (hasError :: HasError | s)
+``` purescript
+data Observable :: *
+```
 
 
-    type ErrEnd s = (terminable :: Terminable, hasError :: HasError | s)
+#### `HasError`
 
+``` purescript
+data HasError :: *
+```
 
-    data Event e a where
-      Value :: Boolean -> a -> Event e a
-      Error :: Boolean -> e -> Event e a
-      End :: Event e a
 
+#### `Emittable`
 
-    data HasError :: *
+``` purescript
+data Emittable :: *
+```
 
 
-    data Kefir :: !
+#### `Pluggable`
 
+``` purescript
+data Pluggable :: *
+```
 
-    type Max = Number
 
+#### `Obs`
 
-    type Min = Number
+``` purescript
+type Obs s = (observable :: Observable | s)
+```
 
 
-    type Obs s = (observable :: Observable | s)
+#### `End`
 
+``` purescript
+type End s = (terminable :: Terminable | s)
+```
 
-    type ObsEnd s = (terminable :: Terminable, observable :: Observable | s)
 
+#### `Err`
 
-    type ObsErr s = (hasError :: HasError, observable :: Observable | s)
+``` purescript
+type Err s = (hasError :: HasError | s)
+```
 
 
-    data Observable :: *
+#### `ObsEnd`
 
+``` purescript
+type ObsEnd s = (terminable :: Terminable, observable :: Observable | s)
+```
 
-    type Off = Stream
 
+#### `ObsErr`
 
-    type On = Stream
+``` purescript
+type ObsErr s = (hasError :: HasError, observable :: Observable | s)
+```
 
 
-    type Passive = Stream
+#### `ErrEnd`
 
+``` purescript
+type ErrEnd s = (terminable :: Terminable, hasError :: HasError | s)
+```
 
-    type Plug s = (pluggable :: Pluggable | s)
 
+#### `All`
 
-    data Pluggable :: *
+``` purescript
+type All s = (terminable :: Terminable, observable :: Observable, hasError :: HasError | s)
+```
 
 
-    type Property = Stream
+#### `Emit`
 
+``` purescript
+type Emit s = (emittable :: Emittable | s)
+```
 
-    data Stream :: # * -> # * -> * -> * -> *
 
+#### `Plug`
 
-    data Terminable :: *
+``` purescript
+type Plug s = (pluggable :: Pluggable | s)
+```
 
 
-    type Unregister e = EffKefir e Unit
+#### `EmitPlug`
 
+``` purescript
+type EmitPlug s = (pluggable :: Pluggable, emittable :: Emittable | s)
+```
 
-### Values
 
+#### `forget`
 
-    and :: forall s e. [Stream _ s e Boolean] -> EffKefir _ (Stream () s e Boolean)
+``` purescript
+forget :: forall e a. Stream _ _ e a -> Stream _ _ e a
+```
 
 
-    awaiting :: forall e s. On _ s e _ -> Off _ s e _ -> EffKefir _ (Property () s e Boolean)
+#### `unsafeGlobalize`
 
+``` purescript
+unsafeGlobalize :: forall p s e a. EffKefir _ (Stream p s e a) -> Stream p s e a
+```
 
-    bufferBy :: forall s e a. Stream _ s e a -> Stream _ s e _ -> EffKefir _ (Stream () s e [a])
 
+#### `emitter`
 
-    bufferWhile :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
+``` purescript
+emitter :: EffKefir _ (Stream (Emit ()) (All ()) _ _)
+```
 
 
-    bufferWhileBy :: forall s e a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e [a])
+#### `emit`
 
+``` purescript
+emit :: forall a. Stream (Emit _) (Obs _) _ a -> a -> EffKefir _ Unit
+```
 
-    bufferWhileWith :: forall s e a. { flushOnEnd :: Boolean } -> (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
 
+#### `error`
 
-    bus :: forall eff e a. EffKefir eff (Stream (EmitPlug ()) (All ()) e a)
+``` purescript
+error :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
+```
 
 
-    changes :: forall s e a. Property _ s e a -> EffKefir _ (Stream () s e a)
+#### `end`
 
+``` purescript
+end :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
+```
 
-    combine :: forall e a b x. Stream _ _ e a -> Stream _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All ()) e x)
 
+#### `emitAsync`
 
-    concat :: forall s e a. [Stream _ s e a] -> EffKefir _ (Stream () s e a)
+``` purescript
+emitAsync :: forall a. Stream (Emit _) (Obs _) _ a -> a -> EffKefir _ Unit
+```
 
 
-    constant :: forall a. a -> EffKefir _ (Property () (ObsEnd ()) _ a)
+#### `errorAsync`
 
+``` purescript
+errorAsync :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
+```
 
-    constantError :: forall e. e -> EffKefir _ (Property () (ErrEnd ()) e _)
 
+#### `endAsync`
 
-    debounce :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+``` purescript
+endAsync :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
+```
 
 
-    debounceWith :: forall s e a. { immediate :: Boolean } -> Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+#### `never`
 
+``` purescript
+never :: EffKefir _ (Stream () (End ()) _ _)
+```
 
-    delay :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 
+#### `later`
 
-    diff :: forall s e a b. (a -> a -> b) -> a -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+``` purescript
+later :: forall a. Number -> a -> EffKefir _ (Stream () (ObsEnd ()) _ a)
+```
 
 
-    diff1 :: forall s e a b. (a -> a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+#### `interval`
 
+``` purescript
+interval :: forall a. Number -> a -> EffKefir _ (Stream () (Obs ()) _ a)
+```
 
-    emit :: forall a. Stream (Emit _) (Obs _) _ a -> a -> EffKefir _ Unit
 
+#### `sequentially`
 
-    emitAsync :: forall a. Stream (Emit _) (Obs _) _ a -> a -> EffKefir _ Unit
+``` purescript
+sequentially :: forall a. Number -> [a] -> EffKefir _ (Stream () (ObsEnd ()) _ a)
+```
 
 
-    emitter :: EffKefir _ (Stream (Emit ()) (All ()) _ _)
+#### `repeatedly`
 
+``` purescript
+repeatedly :: forall a. Number -> [a] -> EffKefir _ (Stream () (Obs ()) _ a)
+```
 
-    end :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
 
+#### `fromPoll`
 
-    endAsync :: Stream (Emit _) (End _) _ _ -> EffKefir _ Unit
+``` purescript
+fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Stream () (Obs ()) _ a)
+```
 
 
-    endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (Err s) e _)
+#### `withInterval`
 
+``` purescript
+withInterval :: forall e a. Number -> (Stream (Emit ()) (All ()) _ a -> EffKefir e Unit) -> EffKefir e (Stream () (ObsEnd ()) _ a)
+```
 
-    error :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
 
+#### `fromCallback`
 
-    errorAsync :: forall e. Stream (Emit _) (Err _) e _ -> e -> EffKefir _ Unit
+``` purescript
+fromCallback :: forall e a. EffKefir e a -> EffKefir e (Stream () (ObsEnd ()) _ a)
+```
 
 
-    errorsToValues :: forall s e a. (e -> Maybe a) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (All ()) e a)
+#### `fromNodeCallback`
 
+``` purescript
+fromNodeCallback :: forall eff e a. EffKefir eff (Either e a) -> EffKefir eff (Stream () (All ()) e a)
+```
 
-    filter :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 
+#### `fromBinder`
 
-    filterBy :: forall e s a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e a)
+``` purescript
+fromBinder :: forall e a. (Stream (Emit ()) (All ()) _ a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream () (All ()) _ a)
+```
 
 
-    filterEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e a)
+#### `constant`
 
+``` purescript
+constant :: forall a. a -> EffKefir _ (Property () (ObsEnd ()) _ a)
+```
 
-    filterErrors :: forall s e a. (e -> Boolean) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (Err s) e a)
 
+#### `constantError`
 
-    filterErrorsEff :: forall eff s e a. (e -> EffKefir eff Boolean) -> Stream _ (Err s) e a -> EffKefir eff (Stream () (Err s) e a)
+``` purescript
+constantError :: forall e. e -> EffKefir _ (Property () (ErrEnd ()) e _)
+```
 
 
-    flatMap :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+#### `Unregister`
 
+``` purescript
+type Unregister e = EffKefir e Unit
+```
 
-    flatMapConcat :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
 
+#### `onValue`
 
-    flatMapConcatWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+``` purescript
+onValue :: forall e a. Stream _ (Obs _) _ a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
+```
 
 
-    flatMapConcurLimit :: forall e a. Number -> Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+#### `onError`
 
+``` purescript
+onError :: forall eff e. Stream _ (Err _) e _ -> (e -> EffKefir eff _) -> EffKefir eff (Unregister eff)
+```
 
-    flatMapConcurLimitWith :: forall eff e a b. Number -> Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
 
+#### `onEnd`
 
-    flatMapFirst :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+``` purescript
+onEnd :: forall e. Stream _ (End _) _ _ -> EffKefir e _ -> EffKefir e (Unregister e)
+```
 
 
-    flatMapFirstWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+#### `Event`
 
+``` purescript
+data Event e a
+  = Value Boolean a
+  | Error Boolean e
+  | End 
+```
 
-    flatMapLatest :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
 
+#### `onAny`
 
-    flatMapLatestWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+``` purescript
+onAny :: forall eff e a. Stream _ _ e a -> (Event e a -> EffKefir eff _) -> EffKefir eff (Unregister eff)
+```
 
 
-    flatMapWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+#### `onLog`
 
+``` purescript
+onLog :: Stream _ _ _ _ -> EffKefir _ Unit
+```
 
-    flatten :: forall s e a. Stream _ (Obs s) e [a] -> EffKefir _ (Stream () (Obs s) e a)
 
+#### `onLogWith`
 
-    flattenWith :: forall s e a b. (a -> [b]) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+``` purescript
+onLogWith :: Stream _ _ _ _ -> String -> EffKefir _ Unit
+```
 
 
-    forget :: forall e a. Stream _ _ e a -> Stream _ _ e a
+#### `offLog`
 
+``` purescript
+offLog :: Stream _ _ _ _ -> EffKefir _ Unit
+```
 
-    fromBinder :: forall e a. (Stream (Emit ()) (All ()) _ a -> EffKefir e (EffKefir e Unit)) -> EffKefir e (Stream () (All ()) _ a)
 
+#### `toProperty`
 
-    fromCallback :: forall e a. EffKefir e a -> EffKefir e (Stream () (ObsEnd ()) _ a)
+``` purescript
+toProperty :: forall s e a. Stream _ s e a -> EffKefir _ (Property () s e a)
+```
 
 
-    fromNodeCallback :: forall eff e a. EffKefir eff (Either e a) -> EffKefir eff (Stream () (All ()) e a)
+#### `toPropertyWith`
 
+``` purescript
+toPropertyWith :: forall s e a. a -> Stream _ s e a -> EffKefir _ (Property () s e a)
+```
 
-    fromPoll :: forall e a. Number -> EffKefir e a -> EffKefir e (Stream () (Obs ()) _ a)
 
+#### `changes`
 
-    interval :: forall a. Number -> a -> EffKefir _ (Stream () (Obs ()) _ a)
+``` purescript
+changes :: forall s e a. Property _ s e a -> EffKefir _ (Stream () s e a)
+```
 
 
-    later :: forall a. Number -> a -> EffKefir _ (Stream () (ObsEnd ()) _ a)
+#### `map`
 
+``` purescript
+map :: forall s e a b. (a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+```
 
-    map :: forall s e a b. (a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
 
+#### `mapEff`
 
-    mapEff :: forall eff s e a b. (a -> EffKefir eff b) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e b)
+``` purescript
+mapEff :: forall eff s e a b. (a -> EffKefir eff b) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e b)
+```
 
 
-    mapEnd :: forall eff s e a. EffKefir eff a -> Stream _ (End s) e a -> EffKefir eff (Stream () (All ()) e a)
+#### `filter`
 
+``` purescript
+filter :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
-    mapErrors :: forall s e e' a. (e -> e') -> Stream _ (Err s) e a -> EffKefir _ (Stream () (Err s) e' a)
 
+#### `filterEff`
 
-    mapErrorsEff :: forall eff s e e' a. (e -> EffKefir eff e') -> Stream _ (Err s) e a -> EffKefir eff (Stream () (Err s) e' a)
+``` purescript
+filterEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e a)
+```
 
 
-    merge :: forall s e a. [Stream _ s e a] -> EffKefir _ (Stream () s e a)
+#### `take`
 
+``` purescript
+take :: forall e a. Number -> Stream _ (Obs _) e a -> EffKefir _ (Stream () (All ()) e a)
+```
 
-    never :: EffKefir _ (Stream () (End ()) _ _)
 
+#### `takeWhile`
 
-    offLog :: Stream _ _ _ _ -> EffKefir _ Unit
+``` purescript
+takeWhile :: forall e a. (a -> Boolean) -> Stream _ (Obs _) e a -> EffKefir _ (Stream () (All ()) e a)
+```
 
 
-    onAny :: forall eff e a. Stream _ _ e a -> (Event e a -> EffKefir eff _) -> EffKefir eff (Unregister eff)
+#### `takeWhileEff`
 
+``` purescript
+takeWhileEff :: forall eff e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs _) e a -> EffKefir eff (Stream () (All ()) e a)
+```
 
-    onEnd :: forall e. Stream _ (End _) _ _ -> EffKefir e _ -> EffKefir e (Unregister e)
 
+#### `skip`
 
-    onError :: forall eff e. Stream _ (Err _) e _ -> (e -> EffKefir eff _) -> EffKefir eff (Unregister eff)
+``` purescript
+skip :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
 
-    onLog :: Stream _ _ _ _ -> EffKefir _ Unit
+#### `skipWhile`
 
+``` purescript
+skipWhile :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
-    onLogWith :: Stream _ _ _ _ -> String -> EffKefir _ Unit
 
+#### `skipWhileEff`
 
-    onValue :: forall e a. Stream _ (Obs _) _ a -> (a -> EffKefir e _) -> EffKefir e (Unregister e)
+``` purescript
+skipWhileEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e a)
+```
 
 
-    or :: forall s e. [Stream _ s e Boolean] -> EffKefir _ (Stream () s e Boolean)
+#### `skipDuplicatesWith`
 
+``` purescript
+skipDuplicatesWith :: forall s e a. (a -> a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
-    plug :: forall e a. Stream (Plug _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
 
+#### `skipDuplicates`
 
-    pool :: forall eff e a. EffKefir eff (Stream (Plug ()) (ObsErr ()) e a)
+``` purescript
+skipDuplicates :: forall e s a. (Eq a) => Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
 
-    reduce :: forall s e a b. (b -> a -> b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e b)
+#### `diff1`
 
+``` purescript
+diff1 :: forall s e a b. (a -> a -> b) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+```
 
-    reduce1 :: forall s e a. (a -> a -> a) -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e a)
 
+#### `diff`
 
-    reduceEff :: forall eff s e a b. (b -> a -> EffKefir eff b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir eff (Stream () (ObsEnd s) e b)
+``` purescript
+diff :: forall s e a b. (a -> a -> b) -> a -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+```
 
 
-    reduceEff1 :: forall eff s e a. (a -> a -> EffKefir eff a) -> Stream _ (ObsEnd s) e a -> EffKefir eff (Stream () (ObsEnd s) e a)
+#### `scan1`
 
+``` purescript
+scan1 :: forall s e a. (a -> a -> a) -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e a)
+```
 
-    repeatedly :: forall a. Number -> [a] -> EffKefir _ (Stream () (Obs ()) _ a)
 
+#### `scan`
 
-    sampledBy :: forall s e a b x. Passive _ _ e a -> Active _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All ()) e x)
+``` purescript
+scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e b)
+```
 
 
-    scan :: forall s e a b. (b -> a -> b) -> b -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e b)
+#### `reduce1`
 
+``` purescript
+reduce1 :: forall s e a. (a -> a -> a) -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e a)
+```
 
-    scan1 :: forall s e a. (a -> a -> a) -> Stream _ (Obs s) e a -> EffKefir _ (Property () (Obs s) e a)
 
+#### `reduce`
 
-    sequentially :: forall a. Number -> [a] -> EffKefir _ (Stream () (ObsEnd ()) _ a)
+``` purescript
+reduce :: forall s e a b. (b -> a -> b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir _ (Stream () (ObsEnd s) e b)
+```
 
 
-    skip :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+#### `reduceEff1`
 
+``` purescript
+reduceEff1 :: forall eff s e a. (a -> a -> EffKefir eff a) -> Stream _ (ObsEnd s) e a -> EffKefir eff (Stream () (ObsEnd s) e a)
+```
 
-    skipDuplicates :: forall e s a. (Eq a) => Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 
+#### `reduceEff`
 
-    skipDuplicatesWith :: forall s e a. (a -> a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+``` purescript
+reduceEff :: forall eff s e a b. (b -> a -> EffKefir eff b) -> b -> Stream _ (ObsEnd s) e a -> EffKefir eff (Stream () (ObsEnd s) e b)
+```
 
 
-    skipEnd :: forall s e a. Stream _ (End s) e a -> EffKefir _ (Stream () s e a)
+#### `mapEnd`
 
+``` purescript
+mapEnd :: forall eff s e a. EffKefir eff a -> Stream _ (End s) e a -> EffKefir eff (Stream () (All ()) e a)
+```
 
-    skipErrors :: forall s a. Stream _ (Err s) _ a -> EffKefir _ (Stream () s _ a)
 
+#### `skipEnd`
 
-    skipUntilBy :: forall s e a. Stream _ s e a -> Stream _ s e _ -> EffKefir _ (Stream () s e a)
+``` purescript
+skipEnd :: forall s e a. Stream _ (End s) e a -> EffKefir _ (Stream () s e a)
+```
 
 
-    skipValues :: forall s e. Stream _ (Obs s) e _ -> EffKefir _ (Stream () s e _)
+#### `Min`
 
+``` purescript
+type Min = Number
+```
 
-    skipWhile :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 
+#### `Max`
 
-    skipWhileBy :: forall s e a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e a)
+``` purescript
+type Max = Number
+```
 
 
-    skipWhileEff :: forall eff s e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs s) e a -> EffKefir eff (Stream () (Obs s) e a)
+#### `slidingWindow`
 
+``` purescript
+slidingWindow :: forall s e a. Min -> Max -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
+```
 
-    slidingWindow :: forall s e a. Min -> Max -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
 
+#### `bufferWhile`
 
-    take :: forall e a. Number -> Stream _ (Obs _) e a -> EffKefir _ (Stream () (All ()) e a)
+``` purescript
+bufferWhile :: forall s e a. (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
+```
 
 
-    takeUntilBy :: forall e a. Stream _ _ e a -> Stream _ _ e _ -> EffKefir _ (Stream () (All ()) e a)
+#### `bufferWhileWith`
 
+``` purescript
+bufferWhileWith :: forall s e a. { flushOnEnd :: Boolean } -> (a -> Boolean) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e [a])
+```
 
-    takeWhile :: forall e a. (a -> Boolean) -> Stream _ (Obs _) e a -> EffKefir _ (Stream () (All ()) e a)
 
+#### `delay`
 
-    takeWhileBy :: forall e a. Stream _ _ e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () (All ()) e a)
+``` purescript
+delay :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
 
-    takeWhileEff :: forall eff e a. (a -> EffKefir eff Boolean) -> Stream _ (Obs _) e a -> EffKefir eff (Stream () (All ()) e a)
+#### `throttle`
 
+``` purescript
+throttle :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
-    throttle :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
 
+#### `throttleWith`
 
-    throttleWith :: forall s e a. { trailing :: Boolean, leading :: Boolean } -> Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+``` purescript
+throttleWith :: forall s e a. { trailing :: Boolean, leading :: Boolean } -> Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
 
-    toProperty :: forall s e a. Stream _ s e a -> EffKefir _ (Property () s e a)
+#### `debounce`
 
+``` purescript
+debounce :: forall s e a. Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
-    toPropertyWith :: forall s e a. a -> Stream _ s e a -> EffKefir _ (Property () s e a)
 
+#### `debounceWith`
 
-    unPlug :: forall e a. Stream (Plug _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
+``` purescript
+debounceWith :: forall s e a. { immediate :: Boolean } -> Number -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e a)
+```
 
 
-    unsafeGlobalize :: forall p s e a. EffKefir _ (Stream p s e a) -> Stream p s e a
+#### `flatten`
 
+``` purescript
+flatten :: forall s e a. Stream _ (Obs s) e [a] -> EffKefir _ (Stream () (Obs s) e a)
+```
 
-    valuesToErrors :: forall s e a. (a -> Maybe e) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (All ()) e a)
 
+#### `flattenWith`
 
-    withHandler :: forall eff e e' a b. Stream _ _ e a -> (Stream (Emit ()) (All ()) e' b -> Event e a -> EffKefir eff _) -> EffKefir eff (Stream () (All ()) e' b)
+``` purescript
+flattenWith :: forall s e a b. (a -> [b]) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (Obs s) e b)
+```
 
 
-    withInterval :: forall e a. Number -> (Stream (Emit ()) (All ()) _ a -> EffKefir e Unit) -> EffKefir e (Stream () (ObsEnd ()) _ a)
+#### `withHandler`
 
+``` purescript
+withHandler :: forall eff e e' a b. Stream _ _ e a -> (Stream (Emit ()) (All ()) e' b -> Event e a -> EffKefir eff _) -> EffKefir eff (Stream () (All ()) e' b)
+```
 
-    zipWith :: forall s e a b x. (a -> b -> x) -> Stream _ s e a -> Stream _ s e b -> EffKefir _ (Stream () s e x)
+
+#### `valuesToErrors`
+
+``` purescript
+valuesToErrors :: forall s e a. (a -> Maybe e) -> Stream _ (Obs s) e a -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `errorsToValues`
+
+``` purescript
+errorsToValues :: forall s e a. (e -> Maybe a) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `mapErrors`
+
+``` purescript
+mapErrors :: forall s e e' a. (e -> e') -> Stream _ (Err s) e a -> EffKefir _ (Stream () (Err s) e' a)
+```
+
+
+#### `mapErrorsEff`
+
+``` purescript
+mapErrorsEff :: forall eff s e e' a. (e -> EffKefir eff e') -> Stream _ (Err s) e a -> EffKefir eff (Stream () (Err s) e' a)
+```
+
+
+#### `filterErrors`
+
+``` purescript
+filterErrors :: forall s e a. (e -> Boolean) -> Stream _ (Err s) e a -> EffKefir _ (Stream () (Err s) e a)
+```
+
+
+#### `filterErrorsEff`
+
+``` purescript
+filterErrorsEff :: forall eff s e a. (e -> EffKefir eff Boolean) -> Stream _ (Err s) e a -> EffKefir eff (Stream () (Err s) e a)
+```
+
+
+#### `skipErrors`
+
+``` purescript
+skipErrors :: forall s a. Stream _ (Err s) _ a -> EffKefir _ (Stream () s _ a)
+```
+
+
+#### `skipValues`
+
+``` purescript
+skipValues :: forall s e. Stream _ (Obs s) e _ -> EffKefir _ (Stream () s e _)
+```
+
+
+#### `endOnError`
+
+``` purescript
+endOnError :: forall s e. Stream _ (Err s) e _ -> EffKefir _ (Stream () (Err s) e _)
+```
+
+
+#### `combine`
+
+``` purescript
+combine :: forall e a b x. Stream _ _ e a -> Stream _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All ()) e x)
+```
+
+
+#### `and`
+
+``` purescript
+and :: forall s e. [Stream _ s e Boolean] -> EffKefir _ (Stream () s e Boolean)
+```
+
+
+#### `or`
+
+``` purescript
+or :: forall s e. [Stream _ s e Boolean] -> EffKefir _ (Stream () s e Boolean)
+```
+
+
+#### `Passive`
+
+``` purescript
+type Passive = Stream
+```
+
+
+#### `Active`
+
+``` purescript
+type Active = Stream
+```
+
+
+#### `sampledBy`
+
+``` purescript
+sampledBy :: forall s e a b x. Passive _ _ e a -> Active _ _ e b -> (a -> b -> x) -> EffKefir _ (Stream () (All ()) e x)
+```
+
+
+#### `zipWith`
+
+``` purescript
+zipWith :: forall s e a b x. (a -> b -> x) -> Stream _ s e a -> Stream _ s e b -> EffKefir _ (Stream () s e x)
+```
+
+
+#### `merge`
+
+``` purescript
+merge :: forall s e a. [Stream _ s e a] -> EffKefir _ (Stream () s e a)
+```
+
+
+#### `concat`
+
+``` purescript
+concat :: forall s e a. [Stream _ s e a] -> EffKefir _ (Stream () s e a)
+```
+
+
+#### `pool`
+
+``` purescript
+pool :: forall eff e a. EffKefir eff (Stream (Plug ()) (ObsErr ()) e a)
+```
+
+
+#### `plug`
+
+``` purescript
+plug :: forall e a. Stream (Plug _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
+```
+
+
+#### `unPlug`
+
+``` purescript
+unPlug :: forall e a. Stream (Plug _) _ e a -> Stream _ _ e a -> EffKefir _ Unit
+```
+
+
+#### `bus`
+
+``` purescript
+bus :: forall eff e a. EffKefir eff (Stream (EmitPlug ()) (All ()) e a)
+```
+
+
+#### `flatMap`
+
+``` purescript
+flatMap :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `flatMapLatest`
+
+``` purescript
+flatMapLatest :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `flatMapFirst`
+
+``` purescript
+flatMapFirst :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `flatMapConcat`
+
+``` purescript
+flatMapConcat :: forall e a. Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `flatMapWith`
+
+``` purescript
+flatMapWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+```
+
+
+#### `flatMapLatestWith`
+
+``` purescript
+flatMapLatestWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+```
+
+
+#### `flatMapFirstWith`
+
+``` purescript
+flatMapFirstWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+```
+
+
+#### `flatMapConcatWith`
+
+``` purescript
+flatMapConcatWith :: forall eff e a b. Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+```
+
+
+#### `flatMapConcurLimit`
+
+``` purescript
+flatMapConcurLimit :: forall e a. Number -> Stream _ _ e (Stream _ _ e a) -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `flatMapConcurLimitWith`
+
+``` purescript
+flatMapConcurLimitWith :: forall eff e a b. Number -> Stream _ _ e a -> (a -> EffKefir eff (Stream _ _ e b)) -> EffKefir eff (Stream () (All ()) e b)
+```
+
+
+#### `filterBy`
+
+``` purescript
+filterBy :: forall e s a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e a)
+```
+
+
+#### `takeWhileBy`
+
+``` purescript
+takeWhileBy :: forall e a. Stream _ _ e a -> Stream _ _ e Boolean -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `skipWhileBy`
+
+``` purescript
+skipWhileBy :: forall s e a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e a)
+```
+
+
+#### `skipUntilBy`
+
+``` purescript
+skipUntilBy :: forall s e a. Stream _ s e a -> Stream _ s e _ -> EffKefir _ (Stream () s e a)
+```
+
+
+#### `takeUntilBy`
+
+``` purescript
+takeUntilBy :: forall e a. Stream _ _ e a -> Stream _ _ e _ -> EffKefir _ (Stream () (All ()) e a)
+```
+
+
+#### `bufferBy`
+
+``` purescript
+bufferBy :: forall s e a. Stream _ s e a -> Stream _ s e _ -> EffKefir _ (Stream () s e [a])
+```
+
+
+#### `bufferWhileBy`
+
+``` purescript
+bufferWhileBy :: forall s e a. Stream _ s e a -> Stream _ s e Boolean -> EffKefir _ (Stream () s e [a])
+```
+
+
+#### `On`
+
+``` purescript
+type On = Stream
+```
+
+
+#### `Off`
+
+``` purescript
+type Off = Stream
+```
+
+
+#### `awaiting`
+
+``` purescript
+awaiting :: forall e s. On _ s e _ -> Off _ s e _ -> EffKefir _ (Property () s e Boolean)
+```
+
 
 
 

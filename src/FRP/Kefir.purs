@@ -32,6 +32,8 @@ module FRP.Kefir
   , withInterval
   , fromCallback
   , fromNodeCallback
+  , fromEventE
+  , fromEvent
   , fromBinder
 
   , constant
@@ -94,6 +96,7 @@ import Data.Maybe
 import Data.Maybe.Unsafe
 import Data.Either
 import Data.Function
+import DOM
 
 foreign import data Kefir    :: !
 foreign import data Stream   :: # * -> # * -> * -> * -> *
@@ -311,6 +314,21 @@ function fromCallbackImpl(kefir, fn){
 
 fromCallback :: forall e a. (EffKefir e a) -> EffKefir e (Stream () (ObsEnd()) _ a)
 fromCallback f = runFn2 fromCallbackImpl kefir f
+
+-- fromEvent
+foreign import fromEventImpl """
+function fromEventImpl(kefir, dom, nm, transform){
+  return function FromEventImplEff(){
+    var f = function(e){return transform(e)();}
+    return kefir.fromEvent(dom, nm, f);
+  }
+}""" :: forall a. a
+
+fromEventE :: forall e event a. Node -> String -> (event -> EffKefir e a) -> EffKefir e (Stream () (Obs()) _ a)
+fromEventE dom nm transform = runFn4 fromEventImpl kefir dom nm transform
+
+fromEvent :: forall e event a. Node -> String -> (event -> a) -> EffKefir e (Stream () (Obs()) _ a)
+fromEvent dom nm transform = fromEventE dom nm (\e -> return $ transform e)
 
 -- fromCallback
 foreign import fromNodeCallbackImpl """

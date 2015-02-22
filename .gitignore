@@ -5,3 +5,4 @@ node_modules
 output
 tmp
 wrapper/bundle.js
+docs/FRP/Kefir/Foreign.md
