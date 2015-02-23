@@ -50,6 +50,7 @@ module FRP.Kefir
   , diff1, diff
   , scan1, scan
   , scan1Eff, scanEff
+
   , reduce1, reduce, reduceEff1, reduceEff
   , mapEnd, skipEnd
   , Min(), Max(), slidingWindow
@@ -463,7 +464,7 @@ onAny :: forall eff e a. Stream _ _ e a -> (Event e a -> EffKefir eff _) -> EffK
 onAny s f = runFn3 onAnyImpl {value: mkFn2 $ \a b -> Value a b, error: mkFn2 $ \a b -> Error a b, end: End} s f
 
 foreign import onLogImpl """
-function onLogImpl (sream) {
+function onLogImpl (stream) {
   return function OnLogEff(){
     stream.log();
     return {};
@@ -474,7 +475,7 @@ onLog :: Stream _ _ _ _ -> EffKefir _ Unit
 onLog = onLogImpl
 
 foreign import onLogWithImpl """
-function onLogWithImpl (sream, str) {
+function onLogWithImpl (stream, str) {
   return function OnLogWithEff(){
     stream.log(str);
     return {};
@@ -485,7 +486,7 @@ onLogWith :: Stream _ _ _ _ -> String -> EffKefir _ Unit
 onLogWith s n = runFn2 onLogWithImpl s n
 
 foreign import offLogImpl """
-function offLogImpl (sream) {
+function offLogImpl (stream) {
   return function OffLogEff(){
     stream.offLog();
     return {};
