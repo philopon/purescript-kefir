@@ -1,3 +1,5 @@
+# THIS PROJECT IS NO LONGER MAINTAINED
+
 purescript-kefir
 ================
 [![Build Status](https://travis-ci.org/philopon/purescript-kefir.svg?branch=master)](https://travis-ci.org/philopon/purescript-kefir)
